@@ -4,6 +4,7 @@ class Trips::LocationsController < ApplicationController
     authorize trip, :record_location?
 
     ping = trip.location_pings.create!(location_params.merge(recorded_by: current_user))
+    TripDistanceTracker.new(trip).add_ping!(ping)
 
     render json: location_payload(ping), status: :created
   end

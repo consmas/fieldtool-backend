@@ -1,14 +1,14 @@
 class TripsController < ApplicationController
   def index
     authorize Trip
-    trips = policy_scope(Trip).includes(:driver, :truck, :trailer)
+    trips = policy_scope(Trip).includes(:driver, :vehicle)
     trips = trips.where(status: params[:status]) if params[:status].present?
 
     render json: trips.map { |trip| trip_payload(trip, include_latest_location: false) }
   end
 
   def show
-    trip = Trip.includes(:driver, :truck, :trailer, :trip_events).find(params[:id])
+    trip = Trip.includes(:driver, :vehicle, :trip_events).find(params[:id])
     authorize trip
 
     render json: trip_payload(trip, include_latest_location: true, include_events: true)
@@ -78,14 +78,39 @@ class TripsController < ApplicationController
       :reference_code,
       :driver_id,
       :dispatcher_id,
-      :truck_id,
-      :trailer_id,
+      :vehicle_id,
       :pickup_location,
       :dropoff_location,
       :pickup_notes,
       :dropoff_notes,
       :material_description,
       :waybill_number,
+      :trip_date,
+      :truck_reg_no,
+      :driver_contact,
+      :truck_type_capacity,
+      :road_expense_disbursed,
+      :road_expense_reference,
+      :client_name,
+      :destination,
+      :delivery_address,
+      :tonnage_load,
+      :estimated_departure_time,
+      :estimated_arrival_time,
+      :customer_contact_name,
+      :customer_contact_phone,
+      :special_instructions,
+      :arrival_time_at_site,
+      :pod_type,
+      :waybill_returned,
+      :notes_incidents,
+      :fuel_station_used,
+      :fuel_payment_mode,
+      :fuel_litres_filled,
+      :fuel_receipt_no,
+      :return_time,
+      :vehicle_condition_post_trip,
+      :post_trip_inspector_name,
       :scheduled_pickup_at,
       :scheduled_dropoff_at
     )
@@ -102,12 +127,44 @@ class TripsController < ApplicationController
       dropoff_notes: trip.dropoff_notes,
       material_description: trip.material_description,
       waybill_number: trip.waybill_number,
+      distance_km: trip.distance_km,
+      distance_computed_at: trip.distance_computed_at,
+      trip_date: trip.trip_date,
+      truck_reg_no: trip.truck_reg_no,
+      driver_contact: trip.driver_contact,
+      truck_type_capacity: trip.truck_type_capacity,
+      road_expense_disbursed: trip.road_expense_disbursed,
+      road_expense_reference: trip.road_expense_reference,
+      client_name: trip.client_name,
+      destination: trip.destination,
+      delivery_address: trip.delivery_address,
+      tonnage_load: trip.tonnage_load,
+      estimated_departure_time: trip.estimated_departure_time,
+      estimated_arrival_time: trip.estimated_arrival_time,
+      customer_contact_name: trip.customer_contact_name,
+      customer_contact_phone: trip.customer_contact_phone,
+      special_instructions: trip.special_instructions,
+      arrival_time_at_site: trip.arrival_time_at_site,
+      pod_type: trip.pod_type,
+      waybill_returned: trip.waybill_returned,
+      notes_incidents: trip.notes_incidents,
+      fuel_station_used: trip.fuel_station_used,
+      fuel_payment_mode: trip.fuel_payment_mode,
+      fuel_litres_filled: trip.fuel_litres_filled,
+      fuel_receipt_no: trip.fuel_receipt_no,
+      return_time: trip.return_time,
+      vehicle_condition_post_trip: trip.vehicle_condition_post_trip,
+      post_trip_inspector_name: trip.post_trip_inspector_name,
+      client_rep_signature_attached: trip.client_rep_signature.attached?,
+      proof_of_fuelling_attached: trip.proof_of_fuelling.attached?,
+      inspector_signature_attached: trip.inspector_signature.attached?,
+      security_signature_attached: trip.security_signature.attached?,
+      driver_signature_attached: trip.driver_signature.attached?,
       scheduled_pickup_at: trip.scheduled_pickup_at,
       scheduled_dropoff_at: trip.scheduled_dropoff_at,
       driver: user_payload(trip.driver),
       dispatcher_id: trip.dispatcher_id,
-      truck: vehicle_payload(trip.truck),
-      trailer: vehicle_payload(trip.trailer),
+      vehicle: vehicle_payload(trip.vehicle),
       start_odometer_km: trip.start_odometer_km,
       end_odometer_km: trip.end_odometer_km,
       start_odometer_captured_at: trip.start_odometer_captured_at,

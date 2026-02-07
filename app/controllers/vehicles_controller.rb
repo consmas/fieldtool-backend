@@ -35,7 +35,7 @@ class VehiclesController < ApplicationController
   private
 
   def vehicle_params
-    params.require(:vehicle).permit(:name, :kind, :license_plate, :vin, :notes, :active)
+    params.require(:vehicle).permit(:name, :kind, :license_plate, :vin, :notes, :active, :truck_type_capacity)
   end
 
   def vehicle_payload(vehicle)
@@ -46,7 +46,8 @@ class VehiclesController < ApplicationController
       license_plate: vehicle.license_plate,
       vin: vehicle.vin,
       notes: vehicle.notes,
-      active: vehicle.active
+      active: vehicle.active,
+      truck_type_capacity: vehicle.truck_type_capacity
     }
   end
 end

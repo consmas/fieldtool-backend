@@ -21,7 +21,10 @@ class UsersController < ApplicationController
   def update
     user = User.find(params[:id])
     authorize user
-    user.update!(user_params)
+    user.update!(user_params.except(:phone_number))
+    if user_params.key?(:phone_number)
+      user.update_column(:phone_number, user_params[:phone_number])
+    end
     render json: user_payload(user)
   end
 
@@ -35,7 +38,7 @@ class UsersController < ApplicationController
   private
 
   def user_params
-    params.require(:user).permit(:email, :password, :password_confirmation, :name, :role)
+    params.require(:user).permit(:email, :password, :password_confirmation, :name, :role, :phone_number)
   end
 
   def user_payload(user)
@@ -43,7 +46,8 @@ class UsersController < ApplicationController
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      phone_number: user.phone_number
     }
   end
 end

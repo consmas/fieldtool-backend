@@ -15,6 +15,10 @@ class VehiclePolicy < ApplicationPolicy
     admin_or_dispatcher_or_supervisor?
   end
 
+  def destroy?
+    admin_or_dispatcher_or_supervisor?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

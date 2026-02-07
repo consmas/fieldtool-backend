@@ -20,6 +20,7 @@ Rails.application.routes.draw do
         post "odometer/end", to: "trips/odometer#end"
       end
       resource :pre_trip, only: [:show, :create, :update], controller: "trips/pre_trips"
+      resources :stops, only: [:index, :show, :create, :update, :destroy], controller: "trips/stops"
       resources :locations, only: [:create], controller: "trips/locations" do
         collection do
           get "latest"

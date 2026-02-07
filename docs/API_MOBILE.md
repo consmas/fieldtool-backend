@@ -41,6 +41,57 @@ Response: `200 OK`
 
 ## Trips
 
+### Manifest Fields (Trip)
+These fields mirror the daily trip manifest PDF and are stored on `Trip`.
+
+Section A (General):
+- `trip_date` (YYYY-MM-DD)
+- `truck_reg_no` (auto-filled from selected vehicle's `license_plate`)
+- `driver_contact`
+- `truck_type_capacity`
+- `road_expense_disbursed`
+- `road_expense_reference`
+
+Section B (Delivery):
+- `client_name`
+- `waybill_number` (synced with `reference_code`)
+- `destination`
+- `delivery_address`
+- `tonnage_load`
+- `estimated_departure_time` (HH:MM)
+- `estimated_arrival_time` (HH:MM)
+- `customer_contact_name`
+- `customer_contact_phone`
+- `special_instructions`
+
+Multi‑dropoff support:
+- Use `TripStop` records via `/trips/:id/stops`
+- Each stop can have its own `destination`, `delivery_address`, `tonnage_load`, `waybill_number`, and contact info
+
+Section C (Completion):
+- `arrival_time_at_site` (HH:MM)
+- `pod_type` (`photo | e_signature | manual`)
+- `waybill_returned` (true/false)
+- `notes_incidents`
+- `client_rep_signature_attached` (photo/signature upload)
+
+Section D (Fuel):
+- `fuel_station_used`
+- `fuel_payment_mode` (`cash | card | credit`)
+- `fuel_litres_filled`
+- `fuel_receipt_no`
+- `proof_of_fuelling_attached` (photo upload)
+
+Section E (Post-Trip):
+- `return_time` (HH:MM)
+- `vehicle_condition_post_trip` (`good | requires_service | damaged`)
+- `post_trip_inspector_name`
+- `inspector_signature_attached`
+- `security_signature_attached`
+- `driver_signature_attached`
+
+Note: Attachment uploads for signature/fuelling photos are modeled on the backend but do not yet have dedicated upload endpoints. If you want those endpoints, I can add them.
+
 ### GET /trips
 Optional query: `?status=assigned`
 Response (list):
@@ -56,12 +107,13 @@ Response (list):
     "dropoff_notes": null,
     "material_description": "Gravel",
     "waybill_number": "WB-123",
+    "distance_km": "12.345",
+    "distance_computed_at": "2026-02-06T12:30:00Z",
     "scheduled_pickup_at": "2026-02-06T09:00:00Z",
     "scheduled_dropoff_at": "2026-02-06T11:00:00Z",
     "driver": { "id": 2, "email": "driver@example.com", "name": "Driver", "role": "driver" },
     "dispatcher_id": 1,
-    "truck": { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123" },
-    "trailer": { "id": 4, "name": "Trailer A", "kind": "trailer", "license_plate": "TRL456" },
+    "vehicle": { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123" },
     "start_odometer_km": null,
     "end_odometer_km": null,
     "start_odometer_captured_at": null,
@@ -96,12 +148,13 @@ Response (show) includes latest location + event timeline:
   "dropoff_notes": null,
   "material_description": "Gravel",
   "waybill_number": "WB-123",
+  "distance_km": "12.345",
+  "distance_computed_at": "2026-02-06T12:30:00Z",
   "scheduled_pickup_at": "2026-02-06T09:00:00Z",
   "scheduled_dropoff_at": "2026-02-06T11:00:00Z",
   "driver": { "id": 2, "email": "driver@example.com", "name": "Driver", "role": "driver" },
   "dispatcher_id": 1,
-  "truck": { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123" },
-  "trailer": { "id": 4, "name": "Trailer A", "kind": "trailer", "license_plate": "TRL456" },
+  "vehicle": { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123" },
   "start_odometer_km": null,
   "end_odometer_km": null,
   "start_odometer_captured_at": null,
@@ -148,8 +201,7 @@ Request body (nest under `trip`):
     "reference_code": "WB-123",
     "driver_id": 2,
     "dispatcher_id": 1,
-    "truck_id": 3,
-    "trailer_id": 4,
+    "vehicle_id": 3,
     "pickup_location": "A",
     "dropoff_location": "B",
     "pickup_notes": "Call on arrival",
@@ -208,6 +260,56 @@ Response:
   "recorded_at": "2026-02-06T12:00:00Z"
 }
 ```
+
+### Trip Stops (Multi‑Dropoff)
+
+#### GET /trips/:id/stops
+Response:
+```json
+[
+  {
+    "id": 1,
+    "trip_id": 1,
+    "sequence": 1,
+    "destination": "Tema",
+    "delivery_address": "Depot A",
+    "tonnage_load": "20 tons",
+    "waybill_number": "WB-123-A",
+    "customer_contact_name": "Kwame Mensah",
+    "customer_contact_phone": "+233000000000",
+    "special_instructions": "Use rear gate",
+    "arrival_time_at_site": "10:30",
+    "pod_type": "photo",
+    "waybill_returned": true,
+    "notes_incidents": null,
+    "created_at": "2026-02-06T10:00:00Z",
+    "updated_at": "2026-02-06T10:00:00Z"
+  }
+]
+```
+
+#### POST /trips/:id/stops
+Request body:
+```json
+{
+  "stop": {
+    "sequence": 1,
+    "destination": "Tema",
+    "delivery_address": "Depot A",
+    "tonnage_load": "20 tons",
+    "waybill_number": "WB-123-A",
+    "customer_contact_name": "Kwame Mensah",
+    "customer_contact_phone": "+233000000000",
+    "special_instructions": "Use rear gate"
+  }
+}
+```
+
+#### PATCH /trips/:id/stops/:id
+Same body as create.
+
+#### DELETE /trips/:id/stops/:id
+Response: `204 No Content`
 
 ### GET /trips/:id/locations/latest
 Response: same shape as create, or `404` if none.
@@ -342,14 +444,14 @@ Same fields as create. Response: same shape as `GET /trips/:id/pre_trip`.
 Response:
 ```json
 [
-  { "id": 1, "email": "admin@example.com", "name": "Admin", "role": "admin" }
+  { "id": 1, "email": "admin@example.com", "name": "Admin", "role": "admin", "phone_number": "+233000000000" }
 ]
 ```
 
 ### GET /users/:id
 Response:
 ```json
-{ "id": 1, "email": "admin@example.com", "name": "Admin", "role": "admin" }
+{ "id": 1, "email": "admin@example.com", "name": "Admin", "role": "admin", "phone_number": "+233000000000" }
 ```
 
 ### POST /users
@@ -361,7 +463,8 @@ Request body (nest under `user`):
     "password": "password",
     "password_confirmation": "password",
     "name": "Driver",
-    "role": "driver"
+    "role": "driver",
+    "phone_number": "+233000000000"
   }
 }
 ```
@@ -382,14 +485,14 @@ Response: `204 No Content`
 Response:
 ```json
 [
-  { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123", "vin": null, "notes": null, "active": true }
+  { "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123", "vin": null, "notes": null, "active": true, "truck_type_capacity": "Articulated – 50 tons" }
 ]
 ```
 
 ### GET /vehicles/:id
 Response:
 ```json
-{ "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123", "vin": null, "notes": null, "active": true }
+{ "id": 3, "name": "Truck 12", "kind": "truck", "license_plate": "ABC123", "vin": null, "notes": null, "active": true, "truck_type_capacity": "Articulated – 50 tons" }
 ```
 
 ### POST /vehicles
@@ -402,7 +505,8 @@ Request body (nest under `vehicle`):
     "license_plate": "ABC123",
     "vin": "VIN123",
     "notes": "Assigned to Team A",
-    "active": true
+    "active": true,
+    "truck_type_capacity": "Articulated – 50 tons"
   }
 }
 ```

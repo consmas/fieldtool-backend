@@ -13,10 +13,27 @@ class Trip < ApplicationRecord
     cancelled: 7
   }, prefix: true
 
+  enum :pod_type, {
+    photo: 0,
+    e_signature: 1,
+    manual: 2
+  }, prefix: true
+
+  enum :fuel_payment_mode, {
+    cash: 0,
+    card: 1,
+    credit: 2
+  }, prefix: true
+
+  enum :vehicle_condition_post_trip, {
+    good: 0,
+    requires_service: 1,
+    damaged: 2
+  }, prefix: true
+
   belongs_to :driver, class_name: "User", inverse_of: :assigned_trips
   belongs_to :dispatcher, class_name: "User", optional: true
-  belongs_to :truck, class_name: "Vehicle", optional: true
-  belongs_to :trailer, class_name: "Vehicle", optional: true
+  belongs_to :vehicle, optional: true
   belongs_to :start_odometer_captured_by, class_name: "User", optional: true
   belongs_to :end_odometer_captured_by, class_name: "User", optional: true
 
@@ -24,9 +41,15 @@ class Trip < ApplicationRecord
   has_many :evidence, dependent: :destroy
   has_many :trip_events, dependent: :destroy
   has_one :pre_trip_inspection, dependent: :destroy
+  has_many :trip_stops, dependent: :destroy
 
   has_one_attached :start_odometer_photo
   has_one_attached :end_odometer_photo
+  has_one_attached :client_rep_signature
+  has_one_attached :proof_of_fuelling
+  has_one_attached :inspector_signature
+  has_one_attached :security_signature
+  has_one_attached :driver_signature
 
   validates :status, presence: true
   validates :driver, presence: true
@@ -34,6 +57,7 @@ class Trip < ApplicationRecord
   validate :reference_matches_waybill
 
   before_validation :sync_reference_with_waybill
+  before_validation :sync_truck_reg_no
 
   def latest_location
     location_pings.order(recorded_at: :desc).first
@@ -127,6 +151,13 @@ class Trip < ApplicationRecord
 
     errors.add(:reference_code, "must match waybill_number")
     errors.add(:waybill_number, "must match reference_code")
+  end
+
+  def sync_truck_reg_no
+    return unless vehicle
+    return if truck_reg_no.present?
+
+    self.truck_reg_no = vehicle.license_plate
   end
 
   def gating_rules_pass?(new_status)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -117,13 +117,32 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
     t.index ["trip_id"], name: "index_trip_events_on_trip_id"
   end
 
+  create_table "trip_stops", force: :cascade do |t|
+    t.bigint "trip_id", null: false
+    t.integer "sequence", null: false
+    t.string "destination"
+    t.string "delivery_address"
+    t.string "tonnage_load"
+    t.string "waybill_number"
+    t.string "customer_contact_name"
+    t.string "customer_contact_phone"
+    t.text "special_instructions"
+    t.time "arrival_time_at_site"
+    t.integer "pod_type", default: 0, null: false
+    t.boolean "waybill_returned"
+    t.text "notes_incidents"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["pod_type"], name: "index_trip_stops_on_pod_type"
+    t.index ["trip_id", "sequence"], name: "index_trip_stops_on_trip_id_and_sequence", unique: true
+    t.index ["trip_id"], name: "index_trip_stops_on_trip_id"
+  end
+
   create_table "trips", force: :cascade do |t|
     t.string "reference_code"
     t.integer "status", default: 0, null: false
     t.bigint "driver_id", null: false
     t.bigint "dispatcher_id"
-    t.bigint "truck_id"
-    t.bigint "trailer_id"
     t.string "pickup_location"
     t.string "dropoff_location"
     t.text "pickup_notes"
@@ -149,14 +168,44 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "waybill_number"
+    t.date "trip_date"
+    t.string "truck_reg_no"
+    t.string "driver_contact"
+    t.string "truck_type_capacity"
+    t.decimal "road_expense_disbursed", precision: 10, scale: 2
+    t.string "road_expense_reference"
+    t.string "client_name"
+    t.string "destination"
+    t.string "delivery_address"
+    t.string "tonnage_load"
+    t.time "estimated_departure_time"
+    t.time "estimated_arrival_time"
+    t.string "customer_contact_name"
+    t.string "customer_contact_phone"
+    t.text "special_instructions"
+    t.time "arrival_time_at_site"
+    t.integer "pod_type", default: 0, null: false
+    t.boolean "waybill_returned"
+    t.text "notes_incidents"
+    t.string "fuel_station_used"
+    t.integer "fuel_payment_mode", default: 0, null: false
+    t.decimal "fuel_litres_filled", precision: 10, scale: 2
+    t.string "fuel_receipt_no"
+    t.time "return_time"
+    t.integer "vehicle_condition_post_trip", default: 0, null: false
+    t.string "post_trip_inspector_name"
+    t.bigint "vehicle_id"
+    t.decimal "distance_km", precision: 12, scale: 3, default: "0.0", null: false
+    t.datetime "distance_computed_at"
+    t.decimal "last_snapped_lat", precision: 10, scale: 6
+    t.decimal "last_snapped_lng", precision: 10, scale: 6
     t.index ["dispatcher_id"], name: "index_trips_on_dispatcher_id"
     t.index ["driver_id"], name: "index_trips_on_driver_id"
     t.index ["end_odometer_captured_by_id"], name: "index_trips_on_end_odometer_captured_by_id"
     t.index ["reference_code"], name: "index_trips_on_reference_code"
     t.index ["start_odometer_captured_by_id"], name: "index_trips_on_start_odometer_captured_by_id"
     t.index ["status"], name: "index_trips_on_status"
-    t.index ["trailer_id"], name: "index_trips_on_trailer_id"
-    t.index ["truck_id"], name: "index_trips_on_truck_id"
+    t.index ["vehicle_id"], name: "index_trips_on_vehicle_id"
     t.index ["waybill_number"], name: "index_trips_on_waybill_number"
   end
 
@@ -171,8 +220,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
     t.string "name"
     t.integer "role", default: 0, null: false
     t.string "jti", default: "", null: false
+    t.string "phone_number"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
+    t.index ["phone_number"], name: "index_users_on_phone_number"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
@@ -185,6 +236,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "truck_type_capacity"
     t.index ["active"], name: "index_vehicles_on_active"
     t.index ["kind"], name: "index_vehicles_on_kind"
     t.index ["license_plate"], name: "index_vehicles_on_license_plate"
@@ -200,10 +252,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_094500) do
   add_foreign_key "pre_trip_inspections", "users", column: "captured_by_id"
   add_foreign_key "trip_events", "trips"
   add_foreign_key "trip_events", "users", column: "created_by_id"
+  add_foreign_key "trip_stops", "trips"
   add_foreign_key "trips", "users", column: "dispatcher_id"
   add_foreign_key "trips", "users", column: "driver_id"
   add_foreign_key "trips", "users", column: "end_odometer_captured_by_id"
   add_foreign_key "trips", "users", column: "start_odometer_captured_by_id"
-  add_foreign_key "trips", "vehicles", column: "trailer_id"
-  add_foreign_key "trips", "vehicles", column: "truck_id"
+  add_foreign_key "trips", "vehicles"
 end
