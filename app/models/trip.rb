@@ -162,8 +162,6 @@ class Trip < ApplicationRecord
 
   def gating_rules_pass?(new_status)
     case new_status
-    when "en_route"
-      start_odometer_km.present? && start_odometer_photo.attached?
     when "completed"
       start_odometer_km.present? &&
         end_odometer_km.present? &&

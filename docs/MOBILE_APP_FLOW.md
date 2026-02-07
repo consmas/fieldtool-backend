@@ -102,21 +102,25 @@ All requests require:
 - Required checklist + odometer photo
 - If `pre_trip.waybill_number` is sent, backend updates trip waybill
 
-### 5) Start Odometer (Required before en_route)
-- `POST /trips/:id/odometer/start` (multipart)
+### 5) Pre‑Trip Form (Includes Start Odometer)
+- Capture **start odometer** in the pre‑trip form
+- `POST /trips/:id/pre_trip` (multipart)
+- Odometer start is a verification checkpoint (not used for distance)
 
-### 6) Start Trip + GPS Tracking
+### 6) Start Trip (Slide) + GPS Tracking
+- Driver slides **Start Trip** to begin location recording
 - Update status: `POST /trips/:id/status` → `en_route`
-- Periodically send location pings:
+- Start sending GPS pings:
   - `POST /trips/:id/locations`
-- Backend computes distance using Google Roads API
+- Backend computes **distance_km** from GPS pings (Google Roads API)
 
 ### 7) Delivery Completion (Single or Multi‑Drop)
 - For single destination: update Trip fields (`arrival_time_at_site`, `pod_type`, `notes_incidents`) via `PATCH /trips/:id`
 - For multi‑dropoff: update each stop via `PATCH /trips/:id/stops/:stop_id`
 - Upload evidence photos via `POST /trips/:id/evidence`
 
-### 8) Fuel Refilling + End Odometer
+### 8) Fuel Refilling + Post‑Trip Form (Includes End Odometer)
+- Capture **end odometer** in the post‑trip form
 - `POST /trips/:id/odometer/end` (multipart)
 - Update fuel fields on Trip via `PATCH /trips/:id`
 
@@ -124,7 +128,9 @@ All requests require:
 - Update Trip fields (`return_time`, `vehicle_condition_post_trip`, `post_trip_inspector_name`) via `PATCH /trips/:id`
 - Signature uploads pending endpoints
 
-### 10) Complete Trip
+### 10) End Trip (Slide)
+- Driver slides **End Trip** after final delivery
+- Stop GPS tracking
 - `POST /trips/:id/status` → `completed`
 
 ---
@@ -133,7 +139,7 @@ All requests require:
 
 - Treat admin‑entered fields as read‑only.
 - Use `vehicle.truck_type_capacity` for truck capacity display.
-- Use `trip.distance_km` to display distance traveled.
+- Use `trip.distance_km` to display distance traveled (computed from GPS, not odometer).
 - For multi‑dropoff, render each stop as a separate delivery card with its own waybill and tonnage.
 
 ---

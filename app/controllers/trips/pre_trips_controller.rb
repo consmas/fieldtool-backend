@@ -26,6 +26,7 @@ class Trips::PreTripsController < ApplicationController
 
     authorize pre_trip
     pre_trip.save!
+    sync_trip_start_odometer(pre_trip)
 
     TripEvent.create!(
       trip: trip,
@@ -55,6 +56,7 @@ class Trips::PreTripsController < ApplicationController
     pre_trip.odometer_captured_at ||= Time.current
     attach_photos(pre_trip)
     pre_trip.save!
+    sync_trip_start_odometer(pre_trip)
 
     TripEvent.create!(
       trip: trip,
@@ -142,5 +144,19 @@ class Trips::PreTripsController < ApplicationController
       created_at: pre_trip.created_at,
       updated_at: pre_trip.updated_at
     }
+  end
+
+  def sync_trip_start_odometer(pre_trip)
+    trip = pre_trip.trip
+    return if pre_trip.odometer_value_km.blank?
+    return unless pre_trip.odometer_photo.attached?
+
+    trip.start_odometer_km = pre_trip.odometer_value_km
+    trip.start_odometer_captured_at = pre_trip.odometer_captured_at
+    trip.start_odometer_captured_by_id = pre_trip.captured_by_id
+    trip.start_odometer_lat = pre_trip.odometer_lat
+    trip.start_odometer_lng = pre_trip.odometer_lng
+    trip.start_odometer_photo.attach(pre_trip.odometer_photo.blob) unless trip.start_odometer_photo.attached?
+    trip.save!
   end
 end
