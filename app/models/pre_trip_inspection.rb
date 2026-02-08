@@ -7,17 +7,18 @@ class PreTripInspection < ApplicationRecord
   has_one_attached :odometer_photo
   has_one_attached :load_photo
   has_one_attached :waybill_photo
+  has_one_attached :inspector_signature
+  has_one_attached :inspector_photo
 
   validates :odometer_value_km, presence: true
   validates :odometer_captured_at, presence: true
-  validates :brakes, :tyres, :lights, :mirrors, :horn, :fuel_sufficient, :load_area_ready, inclusion: { in: [true, false] }
-  validates :load_status, presence: true
-  validates :load_secured, inclusion: { in: [true, false] }
+  validates :brakes, :tyres, :lights, :mirrors, :horn, :fuel_sufficient, inclusion: { in: [true, false] }
   validates :accepted, inclusion: { in: [true, false] }
   validates :trip_id, uniqueness: true
 
   validate :odometer_photo_attached
   validate :accepted_at_required_when_accepted
+  validate :load_fields_consistency
 
   private
 
@@ -29,5 +30,13 @@ class PreTripInspection < ApplicationRecord
     return unless accepted && accepted_at.blank?
 
     errors.add(:accepted_at, "must be present when accepted")
+  end
+
+  def load_fields_consistency
+    return if load_area_ready.nil? && load_status.nil? && load_secured.nil? && load_note.blank? && !load_photo.attached?
+
+    errors.add(:load_area_ready, "must be set") if load_area_ready.nil?
+    errors.add(:load_status, "must be set") if load_status.nil?
+    errors.add(:load_secured, "must be set") if load_secured.nil?
   end
 end

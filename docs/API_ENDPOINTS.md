@@ -78,6 +78,9 @@ All requests (except login) require:
 - `GET /trips/:id/pre_trip`
 - `POST /trips/:id/pre_trip` (multipart, upsert)
 - `PATCH /trips/:id/pre_trip` (multipart)
+  - Notes:
+    - Initial `POST` can omit load fields; they can be sent later via `PATCH`.
+    - New optional uploads: `pre_trip[inspector_signature]`, `pre_trip[inspector_photo]`.
   - Response (create/update):
 ```json
 {
@@ -107,9 +110,13 @@ All requests (except login) require:
   "odometer_photo_attached": true,
   "load_photo_attached": true,
   "waybill_photo_attached": false,
+  "inspector_signature_attached": true,
+  "inspector_photo_attached": true,
   "odometer_photo_url": "http://localhost:3000/rails/active_storage/blobs/...",
   "load_photo_url": "http://localhost:3000/rails/active_storage/blobs/...",
   "waybill_photo_url": null,
+  "inspector_signature_url": "http://localhost:3000/rails/active_storage/blobs/...",
+  "inspector_photo_url": "http://localhost:3000/rails/active_storage/blobs/...",
   "created_at": "2026-02-08T12:06:00Z",
   "updated_at": "2026-02-08T12:06:00Z"
 }

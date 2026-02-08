@@ -88,9 +88,9 @@ class Trips::PreTripsController < ApplicationController
       :mirrors,
       :horn,
       :fuel_sufficient,
-      :load_area_ready,
       :load_status,
       :load_secured,
+      :load_area_ready,
       :load_note,
       :accepted,
       :accepted_at,
@@ -100,7 +100,9 @@ class Trips::PreTripsController < ApplicationController
       :fuel_level,
       :odometer_photo,
       :load_photo,
-      :waybill_photo
+      :waybill_photo,
+      :inspector_signature,
+      :inspector_photo
     )
   end
 
@@ -108,10 +110,14 @@ class Trips::PreTripsController < ApplicationController
     odometer_photo = pre_trip_params[:odometer_photo]
     load_photo = pre_trip_params[:load_photo]
     waybill_photo = pre_trip_params[:waybill_photo]
+    inspector_signature = pre_trip_params[:inspector_signature]
+    inspector_photo = pre_trip_params[:inspector_photo]
 
     pre_trip.odometer_photo.attach(odometer_photo) if odometer_photo.present?
     pre_trip.load_photo.attach(load_photo) if load_photo.present?
     pre_trip.waybill_photo.attach(waybill_photo) if waybill_photo.present?
+    pre_trip.inspector_signature.attach(inspector_signature) if inspector_signature.present?
+    pre_trip.inspector_photo.attach(inspector_photo) if inspector_photo.present?
   end
 
   def pre_trip_payload(pre_trip)
@@ -142,9 +148,13 @@ class Trips::PreTripsController < ApplicationController
       odometer_photo_attached: pre_trip.odometer_photo.attached?,
       load_photo_attached: pre_trip.load_photo.attached?,
       waybill_photo_attached: pre_trip.waybill_photo.attached?,
+      inspector_signature_attached: pre_trip.inspector_signature.attached?,
+      inspector_photo_attached: pre_trip.inspector_photo.attached?,
       odometer_photo_url: attachment_url(pre_trip.odometer_photo),
       load_photo_url: attachment_url(pre_trip.load_photo),
       waybill_photo_url: attachment_url(pre_trip.waybill_photo),
+      inspector_signature_url: attachment_url(pre_trip.inspector_signature),
+      inspector_photo_url: attachment_url(pre_trip.inspector_photo),
       created_at: pre_trip.created_at,
       updated_at: pre_trip.updated_at
     }
