@@ -40,5 +40,11 @@ module ConsmasFieldtoolApi
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    config.action_controller.default_url_options = {
+      host: ENV.fetch("APP_HOST", "localhost"),
+      port: ENV.fetch("APP_PORT", 3000)
+    }
+    routes.default_url_options = config.action_controller.default_url_options
   end
 end

@@ -1,4 +1,5 @@
 class Trips::EvidenceController < ApplicationController
+  include Rails.application.routes.url_helpers
   def create
     trip = Trip.find(params[:trip_id])
     photo = evidence_params[:photo]
@@ -45,7 +46,18 @@ class Trips::EvidenceController < ApplicationController
       lng: evidence.lng,
       recorded_at: evidence.recorded_at,
       uploaded_by_id: evidence.uploaded_by_id,
-      photo_attached: evidence.photo.attached?
+      photo_attached: evidence.photo.attached?,
+      photo_url: attachment_url(evidence.photo)
     }
+  end
+
+  def attachment_url(attachment)
+    return nil unless attachment&.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_url(
+      attachment,
+      host: request.base_url,
+      only_path: false
+    )
   end
 end

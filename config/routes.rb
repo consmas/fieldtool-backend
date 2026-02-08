@@ -27,6 +27,7 @@ Rails.application.routes.draw do
         end
       end
       resources :evidence, only: [:create], controller: "trips/evidence"
+      resource :attachments, only: [:update], controller: "trips/attachments"
     end
   end
 end

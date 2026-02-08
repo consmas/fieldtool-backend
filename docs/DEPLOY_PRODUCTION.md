@@ -66,6 +66,8 @@ Ensure your `.env` has:
 ```
 RAILS_MASTER_KEY=your_master_key_here
 GOOGLE_ROADS_API_KEY=your_google_roads_api_key
+APP_HOST=your_domain_or_ip
+APP_PORT=3000
 ```
 
 Do not commit the master key.

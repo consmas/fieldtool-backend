@@ -1,4 +1,6 @@
 class TripsController < ApplicationController
+  include Rails.application.routes.url_helpers
+
   def index
     authorize Trip
     trips = policy_scope(Trip).includes(:driver, :vehicle)
@@ -74,7 +76,17 @@ class TripsController < ApplicationController
   private
 
   def trip_params
-    params.require(:trip).permit(
+    permitted = if current_user&.driver?
+      driver_trip_params
+    else
+      admin_trip_params
+    end
+
+    params.require(:trip).permit(*permitted)
+  end
+
+  def admin_trip_params
+    [
       :reference_code,
       :driver_id,
       :dispatcher_id,
@@ -113,7 +125,23 @@ class TripsController < ApplicationController
       :post_trip_inspector_name,
       :scheduled_pickup_at,
       :scheduled_dropoff_at
-    )
+    ]
+  end
+
+  def driver_trip_params
+    [
+      :arrival_time_at_site,
+      :pod_type,
+      :waybill_returned,
+      :notes_incidents,
+      :fuel_station_used,
+      :fuel_payment_mode,
+      :fuel_litres_filled,
+      :fuel_receipt_no,
+      :return_time,
+      :vehicle_condition_post_trip,
+      :post_trip_inspector_name
+    ]
   end
 
   def trip_payload(trip, include_latest_location: false, include_events: false)
@@ -160,6 +188,11 @@ class TripsController < ApplicationController
       inspector_signature_attached: trip.inspector_signature.attached?,
       security_signature_attached: trip.security_signature.attached?,
       driver_signature_attached: trip.driver_signature.attached?,
+      client_rep_signature_url: attachment_url(trip.client_rep_signature),
+      proof_of_fuelling_url: attachment_url(trip.proof_of_fuelling),
+      inspector_signature_url: attachment_url(trip.inspector_signature),
+      security_signature_url: attachment_url(trip.security_signature),
+      driver_signature_url: attachment_url(trip.driver_signature),
       scheduled_pickup_at: trip.scheduled_pickup_at,
       scheduled_dropoff_at: trip.scheduled_dropoff_at,
       driver: user_payload(trip.driver),
@@ -179,6 +212,8 @@ class TripsController < ApplicationController
       end_odometer_lng: trip.end_odometer_lng,
       start_odometer_photo_attached: trip.start_odometer_photo.attached?,
       end_odometer_photo_attached: trip.end_odometer_photo.attached?,
+      start_odometer_photo_url: attachment_url(trip.start_odometer_photo),
+      end_odometer_photo_url: attachment_url(trip.end_odometer_photo),
       status_changed_at: trip.status_changed_at,
       completed_at: trip.completed_at,
       cancelled_at: trip.cancelled_at
@@ -205,6 +240,16 @@ class TripsController < ApplicationController
       name: user.name,
       role: user.role
     }
+  end
+
+  def attachment_url(attachment)
+    return nil unless attachment&.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_url(
+      attachment,
+      host: request.base_url,
+      only_path: false
+    )
   end
 
   def vehicle_payload(vehicle)

@@ -12,7 +12,7 @@ class TripPolicy < ApplicationPolicy
   end
 
   def update?
-    admin_or_dispatcher_or_supervisor?
+    admin_or_dispatcher_or_supervisor? || record.driver_id == user.id
   end
 
   def change_status?

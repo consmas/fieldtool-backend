@@ -1,4 +1,5 @@
 class Trips::OdometerController < ApplicationController
+  include Rails.application.routes.url_helpers
   def start
     trip = Trip.find(params[:id])
     authorize trip, :capture_odometer?
@@ -85,7 +86,8 @@ class Trips::OdometerController < ApplicationController
         start_odometer_note: trip.start_odometer_note,
         start_odometer_lat: trip.start_odometer_lat,
         start_odometer_lng: trip.start_odometer_lng,
-        start_odometer_photo_attached: trip.start_odometer_photo.attached?
+        start_odometer_photo_attached: trip.start_odometer_photo.attached?,
+        start_odometer_photo_url: attachment_url(trip.start_odometer_photo)
       }
     else
       {
@@ -96,8 +98,19 @@ class Trips::OdometerController < ApplicationController
         end_odometer_note: trip.end_odometer_note,
         end_odometer_lat: trip.end_odometer_lat,
         end_odometer_lng: trip.end_odometer_lng,
-        end_odometer_photo_attached: trip.end_odometer_photo.attached?
+        end_odometer_photo_attached: trip.end_odometer_photo.attached?,
+        end_odometer_photo_url: attachment_url(trip.end_odometer_photo)
       }
     end
+  end
+
+  def attachment_url(attachment)
+    return nil unless attachment&.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_url(
+      attachment,
+      host: request.base_url,
+      only_path: false
+    )
   end
 end

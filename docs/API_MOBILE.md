@@ -91,6 +91,8 @@ Section E (Post-Trip):
 - `driver_signature_attached`
 
 Note: Attachment uploads for signature/fuelling photos are modeled on the backend but do not yet have dedicated upload endpoints. If you want those endpoints, I can add them.
+Note: Attachment responses now include `*_url` fields for displaying images.
+Note: Trip signatures/fuel proof uploads use `PATCH /trips/:id/attachments`.
 
 ### GET /trips
 Optional query: `?status=assigned`

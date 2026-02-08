@@ -1,4 +1,5 @@
 class Trips::PreTripsController < ApplicationController
+  include Rails.application.routes.url_helpers
   def show
     trip = Trip.find(params[:trip_id])
     pre_trip = trip.pre_trip_inspection
@@ -141,9 +142,22 @@ class Trips::PreTripsController < ApplicationController
       odometer_photo_attached: pre_trip.odometer_photo.attached?,
       load_photo_attached: pre_trip.load_photo.attached?,
       waybill_photo_attached: pre_trip.waybill_photo.attached?,
+      odometer_photo_url: attachment_url(pre_trip.odometer_photo),
+      load_photo_url: attachment_url(pre_trip.load_photo),
+      waybill_photo_url: attachment_url(pre_trip.waybill_photo),
       created_at: pre_trip.created_at,
       updated_at: pre_trip.updated_at
     }
+  end
+
+  def attachment_url(attachment)
+    return nil unless attachment&.attached?
+
+    Rails.application.routes.url_helpers.rails_blob_url(
+      attachment,
+      host: request.base_url,
+      only_path: false
+    )
   end
 
   def sync_trip_start_odometer(pre_trip)
