@@ -107,9 +107,11 @@ class Trips::OdometerController < ApplicationController
   def attachment_url(attachment)
     return nil unless attachment&.attached?
 
+    base_url = ENV["PUBLIC_BASE_URL"].presence || request.base_url
+
     Rails.application.routes.url_helpers.rails_blob_url(
       attachment,
-      host: request.base_url,
+      host: base_url,
       only_path: false
     )
   end

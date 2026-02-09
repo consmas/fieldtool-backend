@@ -41,10 +41,14 @@ module ConsmasFieldtoolApi
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    app_host = ENV.fetch("APP_HOST", "localhost")
+    app_port = ENV["APP_PORT"]
+    app_port = nil if app_port.blank? || app_port.to_s == "80" || app_port.to_s == "443"
+
     config.action_controller.default_url_options = {
-      host: ENV.fetch("APP_HOST", "localhost"),
-      port: ENV.fetch("APP_PORT", 3000)
-    }
+      host: app_host,
+      port: app_port
+    }.compact
     routes.default_url_options = config.action_controller.default_url_options
   end
 end
