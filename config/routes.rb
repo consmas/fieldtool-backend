@@ -11,6 +11,12 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope defaults: { format: :json } do
+    resources :destinations, only: [:index, :show, :create, :update, :destroy] do
+      member do
+        post "calculate"
+      end
+    end
+    resources :fuel_prices, only: [:index, :create]
     resources :users, only: [:index, :show, :create, :update, :destroy]
     resources :vehicles, only: [:index, :show, :create, :update, :destroy]
     resources :trips, only: [:index, :show, :create, :update, :destroy] do
@@ -20,6 +26,11 @@ Rails.application.routes.draw do
         post "odometer/end", to: "trips/odometer#end"
       end
       resource :pre_trip, only: [:show, :create, :update], controller: "trips/pre_trips"
+      patch "pre_trip/verify", to: "trips/pre_trip_verifications#update"
+      patch "pre_trip/confirm", to: "trips/pre_trip_verifications#confirm"
+      patch "fuel_allocation", to: "trips/fuel_allocations#update"
+      patch "road_expense", to: "trips/road_expenses#update"
+      patch "road_expense/receipt", to: "trips/road_expenses#receipt"
       resources :stops, only: [:index, :show, :create, :update, :destroy], controller: "trips/stops"
       resources :locations, only: [:create], controller: "trips/locations" do
         collection do

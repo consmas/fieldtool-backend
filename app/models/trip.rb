@@ -25,6 +25,24 @@ class Trip < ApplicationRecord
     credit: 2
   }, prefix: true
 
+  enum :fuel_allocation_payment_mode, {
+    cash: 0,
+    card: 1,
+    credit: 2
+  }, prefix: true
+
+  enum :road_expense_payment_method, {
+    cash: 0,
+    momo: 1,
+    bank: 2
+  }, prefix: true
+
+  enum :road_expense_payment_status, {
+    pending: 0,
+    paid: 1,
+    rejected: 2
+  }, prefix: true
+
   enum :vehicle_condition_post_trip, {
     good: 0,
     requires_service: 1,
@@ -36,6 +54,8 @@ class Trip < ApplicationRecord
   belongs_to :vehicle, optional: true
   belongs_to :start_odometer_captured_by, class_name: "User", optional: true
   belongs_to :end_odometer_captured_by, class_name: "User", optional: true
+  belongs_to :fuel_allocated_by, class_name: "User", optional: true
+  belongs_to :road_expense_paid_by, class_name: "User", optional: true
 
   has_many :location_pings, dependent: :destroy
   has_many :evidence, dependent: :destroy
@@ -50,6 +70,7 @@ class Trip < ApplicationRecord
   has_one_attached :inspector_signature
   has_one_attached :security_signature
   has_one_attached :driver_signature
+  has_one_attached :road_expense_receipt
 
   validates :status, presence: true
   validates :driver, presence: true

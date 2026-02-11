@@ -166,5 +166,58 @@ All requests (except login) require:
 - `PATCH /vehicles/:id`
 - `DELETE /vehicles/:id`
 
+## Logistics Manager
+
+### Pre‑Trip Verification
+- `PATCH /trips/:id/pre_trip/verify`
+  - Body:
+```json
+{ "status": "approved", "note": "All checks passed" }
+```
+  - Response:
+```json
+{ "status": "approved" }
+```
+
+- `PATCH /trips/:id/pre_trip/confirm`
+  - Response:
+```json
+{ "confirmed": true }
+```
+
+### Fuel Allocation
+- `PATCH /trips/:id/fuel_allocation`
+  - Body:
+```json
+{
+  "fuel_allocation": {
+    "fuel_allocated_litres": "120.0",
+    "fuel_allocation_station": "Westport",
+    "fuel_allocation_payment_mode": "cash",
+    "fuel_allocation_reference": "FUEL-123",
+    "fuel_allocation_note": "Allocate before departure"
+  }
+}
+```
+
+### Road Expense Payment
+- `PATCH /trips/:id/road_expense`
+  - Body:
+```json
+{
+  "road_expense": {
+    "road_expense_disbursed": "150.00",
+    "road_expense_reference": "RV-221",
+    "road_expense_payment_status": "paid",
+    "road_expense_payment_method": "momo",
+    "road_expense_payment_reference": "MOMO-REF-1",
+    "road_expense_note": "Paid to driver"
+  }
+}
+```
+
+- `PATCH /trips/:id/road_expense/receipt` (multipart)
+  - Field: `receipt` (file)
+
 ## System
 - `GET /up`

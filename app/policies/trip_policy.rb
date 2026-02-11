@@ -31,6 +31,10 @@ class TripPolicy < ApplicationPolicy
     admin_or_dispatcher_or_supervisor? || record.driver_id == user.id
   end
 
+  def manage_logistics?
+    admin_or_dispatcher_or_supervisor?
+  end
+
   class Scope < Scope
     def resolve
       return scope.all if user&.admin? || user&.dispatcher? || user&.supervisor?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_09_100600) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,6 +42,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "destinations", force: :cascade do |t|
+    t.string "name", null: false
+    t.decimal "average_distance_km", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "base_price_per_ton", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "tons_per_trip", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "kms_per_liter", precision: 10, scale: 2, default: "3.0", null: false
+    t.decimal "fuel_price_ref", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "additional_provision_pct", precision: 5, scale: 2, default: "0.25", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "base_km", precision: 10, scale: 2, default: "100.0", null: false
+    t.decimal "base_trip_cost", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "liters_per_km", precision: 10, scale: 2, default: "1.0", null: false
+    t.index ["active"], name: "index_destinations_on_active"
+    t.index ["name"], name: "index_destinations_on_name", unique: true
+  end
+
   create_table "evidence", force: :cascade do |t|
     t.bigint "trip_id", null: false
     t.integer "kind", default: 0, null: false
@@ -56,6 +74,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
     t.index ["trip_id", "recorded_at"], name: "index_evidence_on_trip_id_and_recorded_at"
     t.index ["trip_id"], name: "index_evidence_on_trip_id"
     t.index ["uploaded_by_id"], name: "index_evidence_on_uploaded_by_id"
+  end
+
+  create_table "fuel_prices", force: :cascade do |t|
+    t.decimal "price_per_liter", precision: 10, scale: 2, null: false
+    t.datetime "effective_at", null: false
+    t.bigint "updated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["effective_at"], name: "index_fuel_prices_on_effective_at"
+    t.index ["updated_by_id"], name: "index_fuel_prices_on_updated_by_id"
   end
 
   create_table "location_pings", force: :cascade do |t|
@@ -98,7 +126,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
     t.string "fuel_level"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "inspection_verification_status", default: 0, null: false
+    t.bigint "inspection_verified_by_id"
+    t.datetime "inspection_verified_at"
+    t.text "inspection_verification_note"
+    t.boolean "inspection_confirmed", default: false, null: false
+    t.bigint "inspection_confirmed_by_id"
+    t.datetime "inspection_confirmed_at"
     t.index ["captured_by_id"], name: "index_pre_trip_inspections_on_captured_by_id"
+    t.index ["inspection_confirmed_by_id"], name: "index_pre_trip_inspections_on_inspection_confirmed_by_id"
+    t.index ["inspection_verification_status"], name: "index_pre_trip_inspections_on_inspection_verification_status"
+    t.index ["inspection_verified_by_id"], name: "index_pre_trip_inspections_on_inspection_verified_by_id"
     t.index ["load_status"], name: "index_pre_trip_inspections_on_load_status"
     t.index ["trip_id"], name: "index_pre_trip_inspections_on_trip_id", unique: true
   end
@@ -199,10 +237,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_06_105000) do
     t.datetime "distance_computed_at"
     t.decimal "last_snapped_lat", precision: 10, scale: 6
     t.decimal "last_snapped_lng", precision: 10, scale: 6
+    t.decimal "fuel_allocated_litres", precision: 10, scale: 2
+    t.string "fuel_allocation_station"
+    t.integer "fuel_allocation_payment_mode"
+    t.string "fuel_allocation_reference"
+    t.bigint "fuel_allocated_by_id"
+    t.datetime "fuel_allocated_at"
+    t.text "fuel_allocation_note"
+    t.integer "road_expense_payment_status", default: 0, null: false
+    t.datetime "road_expense_paid_at"
+    t.bigint "road_expense_paid_by_id"
+    t.integer "road_expense_payment_method"
+    t.string "road_expense_payment_reference"
+    t.text "road_expense_note"
     t.index ["dispatcher_id"], name: "index_trips_on_dispatcher_id"
     t.index ["driver_id"], name: "index_trips_on_driver_id"
     t.index ["end_odometer_captured_by_id"], name: "index_trips_on_end_odometer_captured_by_id"
+    t.index ["fuel_allocated_by_id"], name: "index_trips_on_fuel_allocated_by_id"
     t.index ["reference_code"], name: "index_trips_on_reference_code"
+    t.index ["road_expense_paid_by_id"], name: "index_trips_on_road_expense_paid_by_id"
+    t.index ["road_expense_payment_status"], name: "index_trips_on_road_expense_payment_status"
     t.index ["start_odometer_captured_by_id"], name: "index_trips_on_start_odometer_captured_by_id"
     t.index ["status"], name: "index_trips_on_status"
     t.index ["vehicle_id"], name: "index_trips_on_vehicle_id"

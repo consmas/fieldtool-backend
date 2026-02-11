@@ -1,8 +1,11 @@
 class PreTripInspection < ApplicationRecord
   enum :load_status, { full: 0, partial: 1 }
+  enum :inspection_verification_status, { pending: 0, approved: 1, rejected: 2 }, prefix: true
 
   belongs_to :trip
   belongs_to :captured_by, class_name: "User"
+  belongs_to :inspection_verified_by, class_name: "User", optional: true
+  belongs_to :inspection_confirmed_by, class_name: "User", optional: true
 
   has_one_attached :odometer_photo
   has_one_attached :load_photo
