@@ -36,7 +36,8 @@ class PreTripInspection < ApplicationRecord
   end
 
   def load_fields_consistency
-    return if load_area_ready.nil? && load_status.nil? && load_secured.nil? && load_note.blank? && !load_photo.attached?
+    load_photo_changed = attachment_changes.key?("load_photo")
+    return if load_area_ready.nil? && load_status.nil? && load_secured.nil? && load_note.blank? && !load_photo_changed
 
     errors.add(:load_area_ready, "must be set") if load_area_ready.nil?
     errors.add(:load_status, "must be set") if load_status.nil?
