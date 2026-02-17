@@ -15,7 +15,13 @@ class Trips::PreTripsController < ApplicationController
     trip = Trip.find(params[:trip_id])
     pre_trip = trip.pre_trip_inspection || trip.build_pre_trip_inspection
     was_new = pre_trip.new_record?
-    pre_trip.assign_attributes(pre_trip_params.except(:odometer_photo, :load_photo, :waybill_photo))
+    pre_trip.assign_attributes(pre_trip_params.except(:odometer_photo, :load_photo, :waybill_photo, :core_checklist_json))
+    if checklist_param_present?
+      checklist = parse_core_checklist
+      return render json: { error: ["core_checklist_json must be valid JSON"] }, status: :unprocessable_entity if checklist.nil?
+
+      pre_trip.core_checklist = checklist
+    end
     pre_trip.captured_by ||= current_user
     pre_trip.odometer_captured_at ||= Time.current
 
@@ -53,7 +59,13 @@ class Trips::PreTripsController < ApplicationController
 
     authorize pre_trip
 
-    pre_trip.assign_attributes(pre_trip_params.except(:odometer_photo, :load_photo, :waybill_photo))
+    pre_trip.assign_attributes(pre_trip_params.except(:odometer_photo, :load_photo, :waybill_photo, :core_checklist_json))
+    if checklist_param_present?
+      checklist = parse_core_checklist
+      return render json: { error: ["core_checklist_json must be valid JSON"] }, status: :unprocessable_entity if checklist.nil?
+
+      pre_trip.core_checklist = checklist
+    end
     pre_trip.odometer_captured_at ||= Time.current
     attach_photos(pre_trip)
     pre_trip.save!
@@ -98,11 +110,13 @@ class Trips::PreTripsController < ApplicationController
       :assistant_name,
       :assistant_phone,
       :fuel_level,
+      :core_checklist_json,
       :odometer_photo,
       :load_photo,
       :waybill_photo,
       :inspector_signature,
-      :inspector_photo
+      :inspector_photo,
+      core_checklist: {}
     )
   end
 
@@ -152,6 +166,8 @@ class Trips::PreTripsController < ApplicationController
       inspection_confirmed: pre_trip.inspection_confirmed,
       inspection_confirmed_by_id: pre_trip.inspection_confirmed_by_id,
       inspection_confirmed_at: pre_trip.inspection_confirmed_at,
+      core_checklist: pre_trip.core_checklist || {},
+      core_checklist_template: PreTripInspection::CORE_CHECKLIST_TEMPLATE,
       odometer_photo_attached: pre_trip.odometer_photo.attached?,
       load_photo_attached: pre_trip.load_photo.attached?,
       waybill_photo_attached: pre_trip.waybill_photo.attached?,
@@ -165,6 +181,19 @@ class Trips::PreTripsController < ApplicationController
       created_at: pre_trip.created_at,
       updated_at: pre_trip.updated_at
     }
+  end
+
+  def checklist_param_present?
+    pre_trip_params.key?(:core_checklist) || pre_trip_params[:core_checklist_json].present?
+  end
+
+  def parse_core_checklist
+    return pre_trip_params[:core_checklist].to_h if pre_trip_params.key?(:core_checklist)
+    return {} if pre_trip_params[:core_checklist_json].blank?
+
+    JSON.parse(pre_trip_params[:core_checklist_json])
+  rescue JSON::ParserError
+    nil
   end
 
   def attachment_url(attachment)

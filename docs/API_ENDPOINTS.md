@@ -81,6 +81,9 @@ All requests (except login) require:
   - Notes:
     - Initial `POST` can omit load fields; they can be sent later via `PATCH`.
     - New optional uploads: `pre_trip[inspector_signature]`, `pre_trip[inspector_photo]`.
+    - New optional checklist payload:
+      - `pre_trip[core_checklist]` (object) OR `pre_trip[core_checklist_json]` (JSON string)
+      - Each item value can be `"pass"|"fail"|"na"` or `{ "status": "pass|fail|na", "note": "..." }`.
   - Response (create/update):
 ```json
 {
@@ -107,6 +110,21 @@ All requests (except login) require:
   "assistant_name": "Helper",
   "assistant_phone": "+233000000000",
   "fuel_level": "3/4",
+  "core_checklist": {
+    "vehicle_exterior.lights_indicators_working": "pass",
+    "engine.coolant_level_ok": {
+      "status": "fail",
+      "note": "Top up before departure"
+    }
+  },
+  "core_checklist_template": [
+    {
+      "code": "vehicle_exterior.lights_indicators_working",
+      "label": "Lights & indicators",
+      "section": "vehicle_exterior",
+      "severity_on_fail": "blocker"
+    }
+  ],
   "odometer_photo_attached": true,
   "load_photo_attached": true,
   "waybill_photo_attached": false,

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_09_100600) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_17_183500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -114,9 +114,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_09_100600) do
     t.boolean "mirrors", null: false
     t.boolean "horn", null: false
     t.boolean "fuel_sufficient", null: false
-    t.boolean "load_area_ready", null: false
-    t.integer "load_status", default: 0, null: false
-    t.boolean "load_secured", null: false
+    t.boolean "load_area_ready"
+    t.integer "load_status"
+    t.boolean "load_secured"
     t.text "load_note"
     t.boolean "accepted", null: false
     t.datetime "accepted_at"
@@ -133,6 +133,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_09_100600) do
     t.boolean "inspection_confirmed", default: false, null: false
     t.bigint "inspection_confirmed_by_id"
     t.datetime "inspection_confirmed_at"
+    t.jsonb "core_checklist", default: {}, null: false
     t.index ["captured_by_id"], name: "index_pre_trip_inspections_on_captured_by_id"
     t.index ["inspection_confirmed_by_id"], name: "index_pre_trip_inspections_on_inspection_confirmed_by_id"
     t.index ["inspection_verification_status"], name: "index_pre_trip_inspections_on_inspection_verification_status"
