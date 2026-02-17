@@ -2,6 +2,11 @@ class Trip < ApplicationRecord
   STATUS_FLOW = %w[draft assigned loaded en_route arrived offloaded completed].freeze
   TERMINAL_STATUSES = %w[completed cancelled].freeze
 
+  # Keep enum type resolution stable even if production is temporarily behind on migrations.
+  attribute :fuel_allocation_payment_mode, :integer
+  attribute :road_expense_payment_method, :integer
+  attribute :road_expense_payment_status, :integer
+
   enum :status, {
     draft: 0,
     assigned: 1,
