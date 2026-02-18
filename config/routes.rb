@@ -17,6 +17,23 @@ Rails.application.routes.draw do
       end
     end
     resources :fuel_prices, only: [:index, :create]
+    resources :expenses, only: [:index, :create, :update, :destroy] do
+      collection do
+        get :summary
+        post "bulk/approve", to: "expenses/bulk#approve"
+        post "bulk/reject", to: "expenses/bulk#reject"
+        post "bulk/mark-paid", to: "expenses/bulk#mark_paid"
+        post "automation/road-fee/sync", to: "expenses/automation#road_fee_sync"
+        post "fuel/recalculate", to: "expenses/automation#fuel_recalculate"
+      end
+
+      member do
+        post :submit, to: "expenses/workflows#submit"
+        post :approve, to: "expenses/workflows#approve"
+        post :reject, to: "expenses/workflows#reject"
+        post "mark-paid", to: "expenses/workflows#mark_paid"
+      end
+    end
     get "chat/inbox", to: "chats/inboxes#index"
     namespace :chat, module: "chats", as: "chat" do
       resources :conversations, only: [:index, :create, :show] do

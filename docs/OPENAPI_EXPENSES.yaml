@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: ConsMas Expenses API
+  version: "1.0"
+paths:
+  /expenses:
+    get:
+      summary: List expense entries
+    post:
+      summary: Create expense entry
+  /expenses/{id}:
+    patch:
+      summary: Update expense entry
+    delete:
+      summary: Soft delete expense entry
+  /expenses/{id}/submit:
+    post:
+      summary: Submit draft expense (draft -> pending)
+  /expenses/{id}/approve:
+    post:
+      summary: Approve expense (pending -> approved)
+  /expenses/{id}/reject:
+    post:
+      summary: Reject expense (pending/approved -> rejected)
+  /expenses/{id}/mark-paid:
+    post:
+      summary: Mark expense as paid (approved -> paid)
+  /expenses/bulk/approve:
+    post:
+      summary: Bulk approve expenses
+  /expenses/bulk/reject:
+    post:
+      summary: Bulk reject expenses
+  /expenses/bulk/mark-paid:
+    post:
+      summary: Bulk mark expenses paid
+  /expenses/summary:
+    get:
+      summary: Expense totals and grouped aggregates
+  /expenses/automation/road-fee/sync:
+    post:
+      summary: Backfill auto road fee entries for en_route trips
+  /expenses/fuel/recalculate:
+    post:
+      summary: Recompute fuel expenses from trip fuel fields

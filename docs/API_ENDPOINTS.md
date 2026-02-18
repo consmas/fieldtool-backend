@@ -303,3 +303,45 @@ All requests (except login) require:
 
 ## System
 - `GET /up`
+
+## Expenses (Fleet Cost Ledger)
+- `GET /expenses`
+  - Filters: `date_from`, `date_to`, `category`, `status`, `trip_id`, `vehicle_id`, `driver_id`, `min_amount`, `max_amount`, `auto_generated`, `limit`, `offset`
+- `POST /expenses`
+- `PATCH /expenses/:id`
+- `DELETE /expenses/:id` (soft delete)
+
+### Workflow
+- `POST /expenses/:id/submit`
+- `POST /expenses/:id/approve`
+- `POST /expenses/:id/reject` (requires `reason`)
+- `POST /expenses/:id/mark-paid`
+
+### Bulk
+- `POST /expenses/bulk/approve`
+- `POST /expenses/bulk/reject`
+- `POST /expenses/bulk/mark-paid`
+  - Body shape:
+```json
+{
+  "ids": [1, 2, 3],
+  "reason": "Only required for reject"
+}
+```
+
+### Reporting
+- `GET /expenses/summary`
+  - Returns aggregate totals by category/status/vehicle/driver/trip.
+
+### Automation
+- `POST /expenses/automation/road-fee/sync`
+  - Idempotently creates `road_fee` entries (`amount=100`, `currency=GHS`, `auto_rule_key=road_fee_en_route_v1`) for `en_route` trips missing one.
+- `POST /expenses/fuel/recalculate`
+  - Optional body:
+```json
+{
+  "trip_ids": [1, 2],
+  "price_per_liter": "14.38"
+}
+```
+  - Uses trip liters: `fuel_litres_filled` fallback `fuel_allocated_litres`.

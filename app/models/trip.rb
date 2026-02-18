@@ -65,6 +65,7 @@ class Trip < ApplicationRecord
   has_many :location_pings, dependent: :destroy
   has_many :evidence, dependent: :destroy
   has_many :trip_events, dependent: :destroy
+  has_many :expense_entries, dependent: :nullify
   has_one :pre_trip_inspection, dependent: :destroy
   has_many :trip_stops, dependent: :destroy
   has_one :chat_thread, dependent: :destroy
@@ -127,12 +128,16 @@ class Trip < ApplicationRecord
       return false
     end
 
-    update!(
-      status: new_status,
-      status_changed_at: Time.current,
-      completed_at: (new_status == "completed" ? Time.current : completed_at),
-      cancelled_at: (new_status == "cancelled" ? Time.current : cancelled_at)
-    )
+    transaction do
+      update!(
+        status: new_status,
+        status_changed_at: Time.current,
+        completed_at: (new_status == "completed" ? Time.current : completed_at),
+        cancelled_at: (new_status == "cancelled" ? Time.current : cancelled_at)
+      )
+
+      Expenses::RoadFeeAutoGenerator.call!(trip: self, actor: by_user) if new_status == "en_route"
+    end
   end
 
   def capture_start_odometer!(value_km:, photo:, captured_by:, captured_at: Time.current, note: nil, lat: nil, lng: nil)

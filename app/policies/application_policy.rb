@@ -30,6 +30,14 @@ class ApplicationPolicy
     user&.admin? || user&.dispatcher? || user&.supervisor?
   end
 
+  def finance_or_admin?
+    user&.finance? || user&.admin?
+  end
+
+  def admin_or_dispatcher_or_supervisor_or_finance?
+    admin_or_dispatcher_or_supervisor? || user&.finance?
+  end
+
   class Scope
     attr_reader :user, :scope
 
