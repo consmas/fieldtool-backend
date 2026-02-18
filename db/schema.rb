@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_17_183500) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,31 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_17_183500) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "chat_messages", force: :cascade do |t|
+    t.bigint "chat_thread_id", null: false
+    t.bigint "sender_id", null: false
+    t.text "body", null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["chat_thread_id", "created_at"], name: "index_chat_messages_on_chat_thread_id_and_created_at"
+    t.index ["chat_thread_id"], name: "index_chat_messages_on_chat_thread_id"
+    t.index ["read_at"], name: "index_chat_messages_on_read_at"
+    t.index ["sender_id"], name: "index_chat_messages_on_sender_id"
+  end
+
+  create_table "chat_threads", force: :cascade do |t|
+    t.bigint "trip_id", null: false
+    t.bigint "driver_id", null: false
+    t.bigint "dispatcher_id"
+    t.datetime "last_message_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["dispatcher_id"], name: "index_chat_threads_on_dispatcher_id"
+    t.index ["driver_id"], name: "index_chat_threads_on_driver_id"
+    t.index ["trip_id"], name: "index_chat_threads_on_trip_id", unique: true
   end
 
   create_table "destinations", force: :cascade do |t|
@@ -251,6 +276,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_17_183500) do
     t.integer "road_expense_payment_method"
     t.string "road_expense_payment_reference"
     t.text "road_expense_note"
+    t.string "delivery_place_id"
+    t.decimal "delivery_lat", precision: 10, scale: 6
+    t.decimal "delivery_lng", precision: 10, scale: 6
+    t.string "delivery_map_url"
+    t.string "delivery_location_source"
+    t.datetime "delivery_location_resolved_at"
+    t.index ["delivery_lat", "delivery_lng"], name: "index_trips_on_delivery_lat_and_delivery_lng"
+    t.index ["delivery_place_id"], name: "index_trips_on_delivery_place_id"
     t.index ["dispatcher_id"], name: "index_trips_on_dispatcher_id"
     t.index ["driver_id"], name: "index_trips_on_driver_id"
     t.index ["end_odometer_captured_by_id"], name: "index_trips_on_end_odometer_captured_by_id"
@@ -299,6 +332,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_17_183500) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "chat_messages", "chat_threads"
+  add_foreign_key "chat_messages", "users", column: "sender_id"
+  add_foreign_key "chat_threads", "trips"
+  add_foreign_key "chat_threads", "users", column: "dispatcher_id"
+  add_foreign_key "chat_threads", "users", column: "driver_id"
   add_foreign_key "evidence", "trips"
   add_foreign_key "evidence", "users", column: "uploaded_by_id"
   add_foreign_key "location_pings", "trips"

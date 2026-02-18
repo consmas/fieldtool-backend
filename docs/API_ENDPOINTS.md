@@ -16,6 +16,14 @@ All requests (except login) require:
 - `POST /trips`
 - `PATCH /trips/:id`
 - `DELETE /trips/:id`
+  - Destination location fields supported in create/update and returned in list/detail:
+    - `delivery_address`
+    - `delivery_place_id`
+    - `delivery_lat`
+    - `delivery_lng`
+    - `delivery_map_url`
+    - `delivery_location_source` (`manual|google_autocomplete|shared_link|geolocation`)
+    - `delivery_location_resolved_at`
 
 ### Status
 - `POST /trips/:id/status`

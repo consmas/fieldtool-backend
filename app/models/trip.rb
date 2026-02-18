@@ -80,8 +80,11 @@ class Trip < ApplicationRecord
 
   validates :status, presence: true
   validates :driver, presence: true
+  validates :delivery_location_source, inclusion: { in: %w[manual google_autocomplete shared_link geolocation] }, allow_nil: true
   validate :end_odometer_not_less_than_start
   validate :reference_matches_waybill
+  validate :delivery_coordinates_pair
+  validate :delivery_coordinates_range
 
   before_validation :sync_reference_with_waybill
   before_validation :sync_truck_reg_no
@@ -185,6 +188,29 @@ class Trip < ApplicationRecord
     return if truck_reg_no.present?
 
     self.truck_reg_no = vehicle.license_plate
+  end
+
+  def delivery_coordinates_pair
+    return if delivery_lat.present? && delivery_lng.present?
+    return if delivery_lat.blank? && delivery_lng.blank?
+
+    if delivery_lat.present? && delivery_lng.blank?
+      errors.add(:delivery_lng, "must be present when delivery_lat is provided")
+    elsif delivery_lng.present? && delivery_lat.blank?
+      errors.add(:delivery_lat, "must be present when delivery_lng is provided")
+    end
+  end
+
+  def delivery_coordinates_range
+    return if delivery_lat.blank? || delivery_lng.blank?
+
+    unless delivery_lat.to_d.between?(-90, 90)
+      errors.add(:delivery_lat, "must be between -90 and 90")
+    end
+
+    unless delivery_lng.to_d.between?(-180, 180)
+      errors.add(:delivery_lng, "must be between -180 and 180")
+    end
   end
 
   def gating_rules_pass?(new_status)
