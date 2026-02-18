@@ -17,6 +17,7 @@ Rails.application.routes.draw do
       end
     end
     resources :fuel_prices, only: [:index, :create]
+    get "chat/inbox", to: "chats/inboxes#index"
     resources :users, only: [:index, :show, :create, :update, :destroy]
     resources :vehicles, only: [:index, :show, :create, :update, :destroy]
     resources :trips, only: [:index, :show, :create, :update, :destroy] do
@@ -39,6 +40,8 @@ Rails.application.routes.draw do
       end
       resources :evidence, only: [:create], controller: "trips/evidence"
       resource :attachments, only: [:update], controller: "trips/attachments"
+      resource :chat, only: [:show], controller: "trips/chats"
+      resources :chat_messages, only: [:create, :update], path: "chat/messages", controller: "trips/chat_messages"
     end
   end
 end

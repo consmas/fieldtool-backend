@@ -19,6 +19,9 @@ class User < ApplicationRecord
   has_many :uploaded_evidence, class_name: "Evidence", foreign_key: :uploaded_by_id, inverse_of: :uploaded_by, dependent: :nullify
   has_many :recorded_location_pings, class_name: "LocationPing", foreign_key: :recorded_by_id, inverse_of: :recorded_by, dependent: :nullify
   has_many :pre_trip_inspections, foreign_key: :captured_by_id, inverse_of: :captured_by, dependent: :nullify
+  has_many :driver_chat_threads, class_name: "ChatThread", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
+  has_many :dispatcher_chat_threads, class_name: "ChatThread", foreign_key: :dispatcher_id, dependent: :nullify, inverse_of: :dispatcher
+  has_many :chat_messages, foreign_key: :sender_id, dependent: :nullify, inverse_of: :sender
 
   validates :role, presence: true
 end

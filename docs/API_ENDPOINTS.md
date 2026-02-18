@@ -170,6 +170,34 @@ All requests (except login) require:
 }
 ```
 
+### Trip Chat (Driver <-> Dispatcher)
+- `GET /trips/:id/chat`
+  - Returns thread with messages (creates no data if thread does not yet exist).
+- `POST /trips/:id/chat/messages`
+  - Body:
+```json
+{
+  "message": {
+    "body": "Arrived at gate, waiting for clearance"
+  }
+}
+```
+  - Response `201`:
+```json
+{
+  "id": 10,
+  "chat_thread_id": 3,
+  "sender_id": 2,
+  "body": "Arrived at gate, waiting for clearance",
+  "read_at": null,
+  "created_at": "2026-02-18T10:30:00Z"
+}
+```
+- `PATCH /trips/:id/chat/messages/:id`
+  - Marks a received message as read (no-op for own message).
+- `GET /chat/inbox`
+  - Returns threads with unread counts for current user.
+
 ## Users
 - `GET /users`
 - `GET /users/:id`

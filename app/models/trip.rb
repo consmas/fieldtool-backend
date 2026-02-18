@@ -67,6 +67,7 @@ class Trip < ApplicationRecord
   has_many :trip_events, dependent: :destroy
   has_one :pre_trip_inspection, dependent: :destroy
   has_many :trip_stops, dependent: :destroy
+  has_one :chat_thread, dependent: :destroy
 
   has_one_attached :start_odometer_photo
   has_one_attached :end_odometer_photo
