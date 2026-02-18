@@ -206,6 +206,34 @@ All requests (except login) require:
 - `GET /chat/inbox`
   - Returns threads with unread counts for current user.
 
+### General Chat (Users)
+- `GET /chat/conversations`
+  - Lists conversations for current user.
+- `POST /chat/conversations`
+  - Body:
+```json
+{
+  "conversation": {
+    "title": "Ops Coordination",
+    "participant_ids": [2, 5]
+  }
+}
+```
+  - For 1-to-1 chats, existing direct conversation is reused.
+- `GET /chat/conversations/:id`
+  - Returns conversation details and messages.
+- `PATCH /chat/conversations/:id/read`
+  - Marks conversation as read for current user.
+- `POST /chat/conversations/:conversation_id/messages`
+  - Body:
+```json
+{
+  "message": {
+    "body": "Please share your ETA."
+  }
+}
+```
+
 ## Users
 - `GET /users`
 - `GET /users/:id`

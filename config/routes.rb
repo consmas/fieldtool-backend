@@ -18,6 +18,14 @@ Rails.application.routes.draw do
     end
     resources :fuel_prices, only: [:index, :create]
     get "chat/inbox", to: "chats/inboxes#index"
+    namespace :chat, module: "chats", as: "chat" do
+      resources :conversations, only: [:index, :create, :show] do
+        member do
+          patch :read, to: "conversations#mark_read"
+        end
+        resources :messages, only: [:create], controller: "conversation_messages"
+      end
+    end
     resources :users, only: [:index, :show, :create, :update, :destroy]
     resources :vehicles, only: [:index, :show, :create, :update, :destroy]
     resources :trips, only: [:index, :show, :create, :update, :destroy] do

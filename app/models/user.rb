@@ -22,6 +22,9 @@ class User < ApplicationRecord
   has_many :driver_chat_threads, class_name: "ChatThread", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
   has_many :dispatcher_chat_threads, class_name: "ChatThread", foreign_key: :dispatcher_id, dependent: :nullify, inverse_of: :dispatcher
   has_many :chat_messages, foreign_key: :sender_id, dependent: :nullify, inverse_of: :sender
+  has_many :chat_conversation_participants, dependent: :destroy, inverse_of: :user
+  has_many :chat_conversations, through: :chat_conversation_participants
+  has_many :sent_chat_conversation_messages, class_name: "ChatConversationMessage", foreign_key: :sender_id, dependent: :nullify, inverse_of: :sender
 
   validates :role, presence: true
 end
