@@ -17,6 +17,13 @@ Rails.application.routes.draw do
       end
     end
     resources :fuel_prices, only: [:index, :create]
+    namespace :reports, module: "reports", as: "reports" do
+      get :overview, to: "dashboard#overview"
+      get :trips, to: "dashboard#trips"
+      get :expenses, to: "dashboard#expenses"
+      get :drivers, to: "dashboard#drivers"
+      get :vehicles, to: "dashboard#vehicles"
+    end
     resources :expenses, only: [:index, :create, :update, :destroy] do
       collection do
         get :summary

@@ -345,3 +345,21 @@ All requests (except login) require:
 }
 ```
   - Uses trip liters: `fuel_litres_filled` fallback `fuel_allocated_litres`.
+
+## Reporting
+- `GET /reports/overview`
+  - High-level fleet KPIs: trip counts, completion rate, distance, expense totals, cost per km.
+- `GET /reports/trips`
+  - Trip status breakdown, trip timelines, incidents, destination volume.
+- `GET /reports/expenses`
+  - Expense totals by category/status + daily trend and dimensions.
+- `GET /reports/drivers`
+  - Driver-level performance and expense totals.
+- `GET /reports/vehicles`
+  - Vehicle-level trips, distance, fuel liters, and maintenance/repair spend.
+
+Common query params (where relevant):
+- `date_from`, `date_to`
+- `status`
+- `category`
+- `trip_id`, `vehicle_id`, `driver_id`
