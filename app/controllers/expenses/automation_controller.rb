@@ -6,7 +6,7 @@ class Expenses::AutomationController < ApplicationController
 
     Trip.where(status: :en_route).find_each do |trip|
       processed += 1
-      existing = ExpenseEntry.active.where(trip_id: trip.id, category: :road_fee).exists?
+      existing = ExpenseEntry.active.where(trip_id: trip.id, category: :road_expenses).exists?
       Expenses::RoadFeeAutoGenerator.call!(trip:, actor: current_user)
       created += 1 unless existing
     end

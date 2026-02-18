@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_18_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,41 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "chat_conversation_messages", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "sender_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "created_at"], name: "idx_chat_conversation_messages_timeline"
+    t.index ["conversation_id"], name: "index_chat_conversation_messages_on_conversation_id"
+    t.index ["sender_id"], name: "index_chat_conversation_messages_on_sender_id"
+  end
+
+  create_table "chat_conversation_participants", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "last_read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "user_id"], name: "idx_chat_conversation_participants_unique", unique: true
+    t.index ["conversation_id"], name: "index_chat_conversation_participants_on_conversation_id"
+    t.index ["last_read_at"], name: "index_chat_conversation_participants_on_last_read_at"
+    t.index ["user_id"], name: "index_chat_conversation_participants_on_user_id"
+  end
+
+  create_table "chat_conversations", force: :cascade do |t|
+    t.integer "kind", default: 0, null: false
+    t.string "title"
+    t.bigint "created_by_id"
+    t.datetime "last_message_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_chat_conversations_on_created_by_id"
+    t.index ["kind"], name: "index_chat_conversations_on_kind"
+    t.index ["last_message_at"], name: "index_chat_conversations_on_last_message_at"
   end
 
   create_table "chat_messages", force: :cascade do |t|
@@ -99,6 +134,65 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
     t.index ["trip_id", "recorded_at"], name: "index_evidence_on_trip_id_and_recorded_at"
     t.index ["trip_id"], name: "index_evidence_on_trip_id"
     t.index ["uploaded_by_id"], name: "index_evidence_on_uploaded_by_id"
+  end
+
+  create_table "expense_entries", force: :cascade do |t|
+    t.bigint "trip_id"
+    t.bigint "vehicle_id"
+    t.bigint "driver_id"
+    t.integer "category", null: false
+    t.string "subcategory"
+    t.text "description"
+    t.decimal "quantity", precision: 12, scale: 3
+    t.decimal "unit_cost", precision: 12, scale: 3
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.string "currency", default: "GHS", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "expense_date", null: false
+    t.string "payment_method"
+    t.string "reference"
+    t.string "vendor_name"
+    t.string "receipt_url"
+    t.boolean "is_auto_generated", default: false, null: false
+    t.string "auto_rule_key"
+    t.jsonb "metadata", default: {}, null: false
+    t.bigint "created_by_id"
+    t.bigint "approved_by_id"
+    t.bigint "paid_by_id"
+    t.datetime "approved_at"
+    t.datetime "paid_at"
+    t.datetime "deleted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_id"], name: "index_expense_entries_on_approved_by_id"
+    t.index ["category"], name: "index_expense_entries_on_category"
+    t.index ["created_by_id"], name: "index_expense_entries_on_created_by_id"
+    t.index ["deleted_at"], name: "index_expense_entries_on_deleted_at"
+    t.index ["driver_id"], name: "index_expense_entries_on_driver_id"
+    t.index ["expense_date"], name: "index_expense_entries_on_expense_date"
+    t.index ["is_auto_generated", "auto_rule_key"], name: "index_expense_entries_on_is_auto_generated_and_auto_rule_key"
+    t.index ["paid_by_id"], name: "index_expense_entries_on_paid_by_id"
+    t.index ["status"], name: "index_expense_entries_on_status"
+    t.index ["trip_id", "category", "auto_rule_key", "deleted_at"], name: "index_expense_entries_on_trip_category_rule"
+    t.index ["trip_id"], name: "index_expense_entries_on_trip_id"
+    t.index ["vehicle_id"], name: "index_expense_entries_on_vehicle_id"
+  end
+
+  create_table "expense_entry_audits", force: :cascade do |t|
+    t.bigint "expense_entry_id", null: false
+    t.bigint "actor_id"
+    t.string "action", null: false
+    t.string "from_status"
+    t.string "to_status"
+    t.text "reason"
+    t.jsonb "changeset", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action"], name: "index_expense_entry_audits_on_action"
+    t.index ["actor_id"], name: "index_expense_entry_audits_on_actor_id"
+    t.index ["created_at"], name: "index_expense_entry_audits_on_created_at"
+    t.index ["expense_entry_id"], name: "index_expense_entry_audits_on_expense_entry_id"
   end
 
   create_table "fuel_prices", force: :cascade do |t|
@@ -332,6 +426,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "chat_conversation_messages", "chat_conversations", column: "conversation_id"
+  add_foreign_key "chat_conversation_messages", "users", column: "sender_id"
+  add_foreign_key "chat_conversation_participants", "chat_conversations", column: "conversation_id"
+  add_foreign_key "chat_conversation_participants", "users"
+  add_foreign_key "chat_conversations", "users", column: "created_by_id"
   add_foreign_key "chat_messages", "chat_threads"
   add_foreign_key "chat_messages", "users", column: "sender_id"
   add_foreign_key "chat_threads", "trips"
@@ -339,6 +438,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_101000) do
   add_foreign_key "chat_threads", "users", column: "driver_id"
   add_foreign_key "evidence", "trips"
   add_foreign_key "evidence", "users", column: "uploaded_by_id"
+  add_foreign_key "expense_entries", "trips"
+  add_foreign_key "expense_entries", "users", column: "approved_by_id"
+  add_foreign_key "expense_entries", "users", column: "created_by_id"
+  add_foreign_key "expense_entries", "users", column: "driver_id"
+  add_foreign_key "expense_entries", "users", column: "paid_by_id"
+  add_foreign_key "expense_entries", "vehicles"
+  add_foreign_key "expense_entry_audits", "expense_entries"
+  add_foreign_key "expense_entry_audits", "users", column: "actor_id"
   add_foreign_key "location_pings", "trips"
   add_foreign_key "location_pings", "users", column: "recorded_by_id"
   add_foreign_key "pre_trip_inspections", "trips"

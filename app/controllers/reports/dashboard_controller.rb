@@ -21,11 +21,15 @@ class Reports::DashboardController < ApplicationController
       },
       expenses: {
         total: total_expense,
+        insurance_total: expenses.where(category: :insurance).sum(:amount).to_d,
+        registration_licensing_total: expenses.where(category: :registration_licensing).sum(:amount).to_d,
+        taxes_levies_total: expenses.where(category: :taxes_levies).sum(:amount).to_d,
+        road_expenses_total: expenses.where(category: :road_expenses).sum(:amount).to_d,
         fuel_total: expenses.where(category: :fuel).sum(:amount).to_d,
-        road_fee_total: expenses.where(category: :road_fee).sum(:amount).to_d,
-        maintenance_total: expenses.where(category: :maintenance).sum(:amount).to_d,
-        repair_total: expenses.where(category: :repair).sum(:amount).to_d,
-        emergency_total: expenses.where(category: :emergency).sum(:amount).to_d,
+        repairs_maintenance_total: expenses.where(category: :repairs_maintenance).sum(:amount).to_d,
+        fleet_staff_costs_total: expenses.where(category: :fleet_staff_costs).sum(:amount).to_d,
+        bank_charges_total: expenses.where(category: :bank_charges).sum(:amount).to_d,
+        other_overheads_total: expenses.where(category: :other_overheads).sum(:amount).to_d,
         paid_total: expenses.where(status: :paid).sum(:amount).to_d,
         pending_total: expenses.where(status: [:pending, :approved]).sum(:amount).to_d
       },
@@ -127,7 +131,7 @@ class Reports::DashboardController < ApplicationController
         distance_km_total: vehicle_trips.sum(:distance_km).to_d,
         fuel_litres_total: vehicle_trips.sum(:fuel_litres_filled).to_d,
         expenses_total: expenses_scope.where(vehicle_id: vehicle.id).sum(:amount).to_d,
-        maintenance_total: expenses_scope.where(vehicle_id: vehicle.id, category: [:maintenance, :repair]).sum(:amount).to_d
+        repairs_maintenance_total: expenses_scope.where(vehicle_id: vehicle.id, category: :repairs_maintenance).sum(:amount).to_d
       }
     end
 

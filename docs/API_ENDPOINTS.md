@@ -310,6 +310,16 @@ All requests (except login) require:
 - `POST /expenses`
 - `PATCH /expenses/:id`
 - `DELETE /expenses/:id` (soft delete)
+- Allowed `category` values:
+  - `insurance`
+  - `registration_licensing`
+  - `taxes_levies`
+  - `road_expenses`
+  - `fuel`
+  - `repairs_maintenance`
+  - `fleet_staff_costs`
+  - `bank_charges`
+  - `other_overheads`
 
 ### Workflow
 - `POST /expenses/:id/submit`
@@ -335,7 +345,7 @@ All requests (except login) require:
 
 ### Automation
 - `POST /expenses/automation/road-fee/sync`
-  - Idempotently creates `road_fee` entries (`amount=100`, `currency=GHS`, `auto_rule_key=road_fee_en_route_v1`) for `en_route` trips missing one.
+  - Idempotently creates `road_expenses` entries (`amount=100`, `currency=GHS`, `auto_rule_key=road_fee_en_route_v1`) for `en_route` trips missing one.
 - `POST /expenses/fuel/recalculate`
   - Optional body:
 ```json
@@ -356,7 +366,7 @@ All requests (except login) require:
 - `GET /reports/drivers`
   - Driver-level performance and expense totals.
 - `GET /reports/vehicles`
-  - Vehicle-level trips, distance, fuel liters, and maintenance/repair spend.
+  - Vehicle-level trips, distance, fuel liters, and repairs/maintenance spend.
 
 Common query params (where relevant):
 - `date_from`, `date_to`

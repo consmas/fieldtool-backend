@@ -68,10 +68,15 @@ class ExpensesController < ApplicationController
 
     render json: {
       total_expense: scope.sum(:amount).to_d,
+      insurance_total: scope.where(category: :insurance).sum(:amount).to_d,
+      registration_licensing_total: scope.where(category: :registration_licensing).sum(:amount).to_d,
+      taxes_levies_total: scope.where(category: :taxes_levies).sum(:amount).to_d,
+      road_expenses_total: scope.where(category: :road_expenses).sum(:amount).to_d,
       fuel_total: scope.where(category: :fuel).sum(:amount).to_d,
-      road_fee_total: scope.where(category: :road_fee).sum(:amount).to_d,
-      maintenance_total: scope.where(category: :maintenance).sum(:amount).to_d,
-      emergency_total: scope.where(category: :emergency).sum(:amount).to_d,
+      repairs_maintenance_total: scope.where(category: :repairs_maintenance).sum(:amount).to_d,
+      fleet_staff_costs_total: scope.where(category: :fleet_staff_costs).sum(:amount).to_d,
+      bank_charges_total: scope.where(category: :bank_charges).sum(:amount).to_d,
+      other_overheads_total: scope.where(category: :other_overheads).sum(:amount).to_d,
       pending_total: scope.where(status: :pending).sum(:amount).to_d,
       approved_total: scope.where(status: :approved).sum(:amount).to_d,
       paid_total: scope.where(status: :paid).sum(:amount).to_d,

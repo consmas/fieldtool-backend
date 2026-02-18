@@ -7,14 +7,14 @@ module Expenses
       return nil if trip.nil?
       return nil unless trip.status == "en_route"
 
-      existing = ExpenseEntry.active.where(trip_id: trip.id, category: :road_fee).first
+      existing = ExpenseEntry.active.where(trip_id: trip.id, category: :road_expenses).first
       return existing if existing.present?
 
       expense = ExpenseEntry.create!(
         trip: trip,
         vehicle: trip.vehicle,
         driver: trip.driver,
-        category: :road_fee,
+        category: :road_expenses,
         amount: DEFAULT_AMOUNT,
         currency: "GHS",
         status: :pending,

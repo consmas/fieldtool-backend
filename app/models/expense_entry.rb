@@ -1,8 +1,18 @@
 class ExpenseEntry < ApplicationRecord
-  CATEGORIES = %w[fuel road_fee salary purchase tires maintenance repair emergency other].freeze
+  CATEGORIES = {
+    insurance: 0,
+    registration_licensing: 1,
+    taxes_levies: 2,
+    road_expenses: 3,
+    fuel: 4,
+    repairs_maintenance: 5,
+    fleet_staff_costs: 6,
+    bank_charges: 7,
+    other_overheads: 8
+  }.freeze
   STATUSES = %w[draft pending approved rejected paid].freeze
 
-  enum :category, CATEGORIES.each_with_index.to_h, prefix: true
+  enum :category, CATEGORIES, prefix: true
   enum :status, STATUSES.each_with_index.to_h, prefix: true
 
   belongs_to :trip, optional: true
@@ -27,7 +37,7 @@ class ExpenseEntry < ApplicationRecord
   validates :expense_date, presence: true
 
   validate :amount_matches_quantity_and_unit_cost
-  validate :salary_requires_driver_or_reference
+  validate :fleet_staff_costs_requires_driver_or_reference
   validate :road_fee_auto_rule_defaults
   validate :single_auto_road_fee_per_trip
 
@@ -79,15 +89,15 @@ class ExpenseEntry < ApplicationRecord
     errors.add(:amount, "must approximately equal quantity * unit_cost")
   end
 
-  def salary_requires_driver_or_reference
-    return unless category == "salary"
+  def fleet_staff_costs_requires_driver_or_reference
+    return unless category == "fleet_staff_costs"
     return if driver_id.present? || reference.present?
 
-    errors.add(:base, "salary expense requires driver_id or reference")
+    errors.add(:base, "fleet_staff_costs expense requires driver_id or reference")
   end
 
   def road_fee_auto_rule_defaults
-    return unless category == "road_fee" && is_auto_generated?
+    return unless category == "road_expenses" && is_auto_generated?
     return unless auto_rule_key == "road_fee_en_route_v1"
 
     errors.add(:amount, "must be 100 for auto road fee rule") unless amount.to_d == 100.to_d
@@ -95,10 +105,10 @@ class ExpenseEntry < ApplicationRecord
   end
 
   def single_auto_road_fee_per_trip
-    return unless category == "road_fee" && is_auto_generated? && auto_rule_key == "road_fee_en_route_v1"
+    return unless category == "road_expenses" && is_auto_generated? && auto_rule_key == "road_fee_en_route_v1"
     return if trip_id.blank?
 
-    scope = self.class.active.where(trip_id: trip_id, category: self.class.categories[:road_fee], auto_rule_key: "road_fee_en_route_v1")
+    scope = self.class.active.where(trip_id: trip_id, category: self.class.categories[:road_expenses], auto_rule_key: "road_fee_en_route_v1")
     scope = scope.where.not(id: id) if persisted?
     errors.add(:trip_id, "already has auto road fee") if scope.exists?
   end
