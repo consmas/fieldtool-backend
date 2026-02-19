@@ -8,6 +8,9 @@
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #111827; background: #f9fafb; }
       h1 { margin: 0 0 16px; font-size: 24px; }
       h2 { margin: 24px 0 8px; font-size: 18px; }
+      .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .btn { text-decoration: none; background: #fff; border: 1px solid #d1d5db; padding: 8px 10px; border-radius: 8px; color: #111827; font-size: 13px; }
+      .btn.active { background: #111827; color: #fff; border-color: #111827; }
       .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 10px; }
       .card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
       .label { color: #6b7280; font-size: 12px; }
@@ -17,6 +20,7 @@
       th { background: #f3f4f6; }
       tr:last-child td { border-bottom: 0; }
       .muted { color: #6b7280; font-size: 12px; margin-top: 12px; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 10px; }
     </style>
   </head>
   <body>
@@ -33,17 +37,89 @@
       <div class="card"><div class="label">Processes</div><div class="value"><%= @processes.size %></div></div>
     </div>
 
-    <h2>Queues</h2>
+    <h2>Queue Depth</h2>
     <table>
       <thead>
         <tr><th>Queue</th><th>Size</th></tr>
       </thead>
       <tbody>
-        <% @queues.each do |name, size| %>
-          <tr><td><%= name %></td><td><%= size %></td></tr>
+        <% @queues.each do |name, queue| %>
+          <tr><td><%= name %></td><td><%= queue.size %></td></tr>
         <% end %>
       </tbody>
     </table>
+
+    <h2>Activity (last 30 days)</h2>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Processed</th><th>Failed</th></tr>
+      </thead>
+      <tbody>
+        <% @history.processed.each do |date, processed_count| %>
+          <tr>
+            <td><%= date %></td>
+            <td><%= processed_count %></td>
+            <td><%= @history.failed[date] || 0 %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <h2>Job Explorer</h2>
+    <div class="toolbar">
+      <% tabs = [["enqueued","Enqueued"],["retries","Retries"],["scheduled","Scheduled"],["dead","Dead"],["busy","Busy Workers"],["failed_records","Failed Records"]] %>
+      <% tabs.each do |set, label| %>
+        <a class="btn <%= "active" if @selected_set == set %>" href="/admin/sidekiq-dashboard?set=<%= set %>&limit=<%= @limit %>"><%= label %></a>
+      <% end %>
+    </div>
+
+    <% if @selected_set == "enqueued" %>
+      <div class="toolbar">
+        <% @queues.each_key do |queue_name| %>
+          <a class="btn <%= "active" if @selected_queue == queue_name || (@selected_queue.blank? && queue_name == @queues.keys.first) %>" href="/admin/sidekiq-dashboard?set=enqueued&queue=<%= queue_name %>&limit=<%= @limit %>"><%= queue_name %> (<%= @queues[queue_name].size %>)</a>
+        <% end %>
+      </div>
+    <% end %>
+
+    <table>
+      <thead>
+        <tr>
+          <th>JID</th>
+          <th>Class</th>
+          <th>Queue</th>
+          <th>Enqueued</th>
+          <th>Run At</th>
+          <th>Retries</th>
+          <th>Error</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @job_rows.each do |job| %>
+          <tr>
+            <td>
+              <% if job[:jid].present? %>
+                <a href="/admin/sidekiq-dashboard?set=<%= @selected_set %>&queue=<%= @selected_queue %>&limit=<%= @limit %>&jid=<%= job[:jid] %>"><%= job[:jid] %></a>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td><%= job[:klass] %></td>
+            <td><%= job[:queue] %></td>
+            <td><%= job[:enqueued_at] %></td>
+            <td><%= job[:run_at] %></td>
+            <td><%= job[:retries] %></td>
+            <td><%= [job[:error_class], job[:error_message]].compact.join(": ") %></td>
+            <td><%= job[:source] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @selected_job.present? %>
+      <h2>Selected Job Payload</h2>
+      <pre><%= JSON.pretty_generate(@selected_job[:payload]) rescue @selected_job[:payload].inspect %></pre>
+    <% end %>
 
     <h2>Processes</h2>
     <table>
