@@ -8,6 +8,7 @@ class Vehicle < ApplicationRecord
   has_many :vehicle_documents, dependent: :destroy
   has_many :fuel_logs, dependent: :destroy
   has_many :fuel_analysis_records, dependent: :destroy
+  has_one_attached :insurance_document
 
   validates :name, presence: true
   validates :kind, presence: true

@@ -105,6 +105,31 @@ Rails.application.routes.draw do
         put "notifications/preferences/quiet_hours", to: "/notification_preferences#quiet_hours"
         post "devices", to: "/devices#create"
         delete "devices/:token", to: "/devices#destroy"
+        resources :drivers, only: [:index, :show, :update], controller: "/drivers" do
+          member do
+            get "scores", to: "/driver_scores#index"
+            get "scores/current", to: "/driver_scores#current"
+            get "badges", to: "/driver_scores#badges"
+          end
+          collection do
+            get "leaderboard", to: "/drivers#leaderboard"
+          end
+        end
+        get "drivers/:driver_id/documents", to: "/driver_documents#index"
+        post "drivers/:driver_id/documents", to: "/driver_documents#create"
+        patch "drivers/:driver_id/documents/:id", to: "/driver_documents#update"
+        patch "drivers/:driver_id/documents/:id/verify", to: "/driver_documents#verify"
+        get "drivers/documents/expiring", to: "/driver_documents#expiring"
+        get "drivers/documents/compliance_summary", to: "/driver_documents#compliance_summary"
+        get "me/profile", to: "/me#profile"
+        get "me/documents", to: "/me#documents"
+        post "me/documents", to: "/me#create_document"
+        get "me/scores", to: "/me#scores"
+        get "me/badges", to: "/me#badges"
+        get "me/rank", to: "/me#rank"
+        get "me/improvement_tips", to: "/me#improvement_tips"
+        get "admin/scoring_config", to: "/admin/scoring_config#show"
+        patch "admin/scoring_config", to: "/admin/scoring_config#update"
         get "vehicles/:vehicle_id/fuel_logs", to: "/fuel_logs#index"
         post "vehicles/:vehicle_id/fuel_logs", to: "/fuel_logs#create_for_vehicle"
         post "trips/:trip_id/fuel_logs", to: "/fuel_logs#create_for_trip"

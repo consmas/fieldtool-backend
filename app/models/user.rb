@@ -44,6 +44,8 @@ class User < ApplicationRecord
   has_many :fuel_logs_recorded, class_name: "FuelLog", foreign_key: :recorded_by, dependent: :nullify, inverse_of: :recorder
   has_many :fuel_analysis_records_as_driver, class_name: "FuelAnalysisRecord", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
   has_many :fuel_analysis_records_investigated, class_name: "FuelAnalysisRecord", foreign_key: :investigated_by, dependent: :nullify, inverse_of: :investigator
+  has_one :driver_profile, dependent: :destroy
+  has_many :verified_driver_documents, class_name: "DriverDocument", foreign_key: :verified_by, dependent: :nullify, inverse_of: :verifier
 
   validates :role, presence: true
 end

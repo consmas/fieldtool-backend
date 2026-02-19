@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -175,6 +175,103 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
     t.index ["is_active"], name: "index_device_tokens_on_is_active"
     t.index ["token"], name: "index_device_tokens_on_token", unique: true
     t.index ["user_id"], name: "index_device_tokens_on_user_id"
+  end
+
+  create_table "driver_badges", force: :cascade do |t|
+    t.bigint "driver_profile_id", null: false
+    t.string "badge_type", null: false
+    t.string "title", null: false
+    t.string "description"
+    t.string "icon"
+    t.datetime "earned_at", null: false
+    t.string "scoring_period", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["driver_profile_id", "badge_type", "scoring_period"], name: "idx_driver_badges_unique", unique: true
+    t.index ["driver_profile_id"], name: "index_driver_badges_on_driver_profile_id"
+  end
+
+  create_table "driver_documents", force: :cascade do |t|
+    t.bigint "driver_profile_id", null: false
+    t.string "document_type", null: false
+    t.string "document_number"
+    t.string "title"
+    t.date "issued_at"
+    t.date "expires_at"
+    t.string "issuing_authority"
+    t.string "status", default: "active", null: false
+    t.integer "notify_before_days", default: 30, null: false
+    t.string "verification_status", default: "unverified", null: false
+    t.bigint "verified_by_id"
+    t.datetime "verified_at"
+    t.decimal "cost", precision: 12, scale: 2
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_type"], name: "index_driver_documents_on_document_type"
+    t.index ["driver_profile_id"], name: "index_driver_documents_on_driver_profile_id"
+    t.index ["expires_at"], name: "index_driver_documents_on_expires_at"
+    t.index ["status"], name: "index_driver_documents_on_status"
+    t.index ["verification_status"], name: "index_driver_documents_on_verification_status"
+    t.index ["verified_by_id"], name: "index_driver_documents_on_verified_by_id"
+  end
+
+  create_table "driver_profiles", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "employee_number"
+    t.string "license_number"
+    t.string "license_class"
+    t.date "license_issued_at"
+    t.date "license_expires_at"
+    t.string "license_issuing_authority"
+    t.date "date_of_birth"
+    t.date "date_hired"
+    t.string "emergency_contact_name"
+    t.string "emergency_contact_phone"
+    t.string "blood_type"
+    t.date "medical_fitness_expires_at"
+    t.integer "years_experience"
+    t.string "vehicle_types_qualified", default: [], null: false, array: true
+    t.decimal "current_score", precision: 6, scale: 2
+    t.string "score_tier", default: "bronze", null: false
+    t.integer "total_trips", default: 0, null: false
+    t.decimal "total_distance_km", precision: 14, scale: 3, default: "0.0", null: false
+    t.integer "total_incidents", default: 0, null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "status", default: "active", null: false
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["score_tier"], name: "index_driver_profiles_on_score_tier"
+    t.index ["status"], name: "index_driver_profiles_on_status"
+    t.index ["user_id"], name: "index_driver_profiles_on_user_id_unique", unique: true
+  end
+
+  create_table "driver_scores", force: :cascade do |t|
+    t.bigint "driver_profile_id", null: false
+    t.string "scoring_period", null: false
+    t.string "period_type", null: false
+    t.decimal "overall_score", precision: 6, scale: 2, null: false
+    t.decimal "safety_score", precision: 6, scale: 2, null: false
+    t.decimal "efficiency_score", precision: 6, scale: 2, null: false
+    t.decimal "compliance_score", precision: 6, scale: 2, null: false
+    t.decimal "timeliness_score", precision: 6, scale: 2, null: false
+    t.decimal "professionalism_score", precision: 6, scale: 2, null: false
+    t.integer "trips_in_period", default: 0, null: false
+    t.decimal "distance_in_period", precision: 14, scale: 3, default: "0.0", null: false
+    t.integer "incidents_in_period", default: 0, null: false
+    t.jsonb "score_details", default: {}, null: false
+    t.integer "rank_in_fleet"
+    t.string "trend", default: "stable", null: false
+    t.string "badges_earned", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["driver_profile_id", "scoring_period"], name: "idx_driver_scores_unique_period", unique: true
+    t.index ["driver_profile_id"], name: "index_driver_scores_on_driver_profile_id"
+    t.index ["overall_score"], name: "index_driver_scores_on_overall_score"
   end
 
   create_table "escalation_instances", force: :cascade do |t|
@@ -573,6 +670,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
     t.index ["trip_id"], name: "index_pre_trip_inspections_on_trip_id", unique: true
   end
 
+  create_table "scoring_configs", force: :cascade do |t|
+    t.string "name", null: false
+    t.jsonb "weights", default: {}, null: false
+    t.jsonb "tier_thresholds", default: {}, null: false
+    t.jsonb "badge_rules", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_scoring_configs_on_name", unique: true
+  end
+
   create_table "shipment_events", force: :cascade do |t|
     t.bigint "shipment_id", null: false
     t.string "event_type", null: false
@@ -814,6 +922,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
     t.decimal "average_km_per_liter", precision: 12, scale: 4
     t.decimal "total_fuel_consumed_liters", precision: 14, scale: 3, default: "0.0"
     t.decimal "total_fuel_cost", precision: 14, scale: 2, default: "0.0"
+    t.string "insurance_policy_number"
+    t.string "insurance_provider"
+    t.date "insurance_issued_at"
+    t.date "insurance_expires_at"
+    t.decimal "insurance_coverage_amount", precision: 14, scale: 2
+    t.text "insurance_notes"
     t.index ["active"], name: "index_vehicles_on_active"
     t.index ["kind"], name: "index_vehicles_on_kind"
     t.index ["license_plate"], name: "index_vehicles_on_license_plate"
@@ -965,6 +1079,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
   add_foreign_key "chat_threads", "users", column: "driver_id"
   add_foreign_key "client_users", "clients"
   add_foreign_key "device_tokens", "users"
+  add_foreign_key "driver_badges", "driver_profiles"
+  add_foreign_key "driver_documents", "driver_profiles"
+  add_foreign_key "driver_documents", "users", column: "verified_by_id"
+  add_foreign_key "driver_profiles", "users"
+  add_foreign_key "driver_scores", "driver_profiles"
   add_foreign_key "escalation_instances", "escalation_rules"
   add_foreign_key "escalation_instances", "notifications"
   add_foreign_key "escalation_instances", "users", column: "resolved_by_id"

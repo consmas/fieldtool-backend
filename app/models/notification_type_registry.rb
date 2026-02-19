@@ -91,6 +91,34 @@ class NotificationTypeRegistry
       default_channels: { in_app: true, push: true, sms: false, email: true },
       roles: ["admin", "finance"]
     },
+    "driver.score_published" => {
+      category: "system", priority: "normal",
+      title_template: "Driver Score Updated",
+      body_template: "Your score is %{overall_score} (%{tier})",
+      default_channels: { in_app: true, push: true, sms: false, email: false },
+      roles: ["driver"]
+    },
+    "driver.tier_changed" => {
+      category: "system", priority: "high",
+      title_template: "Driver Tier Changed",
+      body_template: "Your tier changed from %{old_tier} to %{new_tier}",
+      default_channels: { in_app: true, push: true, sms: false, email: false },
+      roles: ["driver"]
+    },
+    "compliance.driver_document_expiring" => {
+      category: "compliance", priority: "high",
+      title_template: "Driver Document Expiring",
+      body_template: "%{document_type} for %{driver_name} expires in %{days_remaining} days",
+      default_channels: { in_app: true, push: true, sms: false, email: true },
+      roles: ["admin", "supervisor"]
+    },
+    "compliance.driver_document_expired" => {
+      category: "compliance", priority: "critical",
+      title_template: "Driver Document Expired",
+      body_template: "%{document_type} for %{driver_name} has expired",
+      default_channels: { in_app: true, push: true, sms: true, email: true },
+      roles: ["admin", "supervisor"]
+    },
     "chat.new_message" => {
       category: "chat", priority: "normal",
       title_template: "New Message",

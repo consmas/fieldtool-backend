@@ -60,3 +60,8 @@ default_escalation_rules.each do |attrs|
   rule.assign_attributes(attrs)
   rule.save!
 end
+
+ScoringConfig.default!
+User.where(role: :driver).find_each do |user|
+  DriverProfile.find_or_create_by!(user_id: user.id)
+end

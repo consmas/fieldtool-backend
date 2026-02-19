@@ -14,6 +14,7 @@ class VehiclesController < ApplicationController
   def create
     vehicle = Vehicle.new(vehicle_params)
     authorize vehicle
+    vehicle.insurance_document.attach(params[:insurance_document]) if params[:insurance_document].present?
     vehicle.save!
     render json: vehicle_payload(vehicle), status: :created
   end
@@ -22,6 +23,7 @@ class VehiclesController < ApplicationController
     vehicle = Vehicle.find(params[:id])
     authorize vehicle
     vehicle.update!(vehicle_params)
+    vehicle.insurance_document.attach(params[:insurance_document]) if params[:insurance_document].present?
     render json: vehicle_payload(vehicle)
   end
 
@@ -35,7 +37,11 @@ class VehiclesController < ApplicationController
   private
 
   def vehicle_params
-    params.require(:vehicle).permit(:name, :kind, :license_plate, :vin, :notes, :active, :truck_type_capacity)
+    params.require(:vehicle).permit(
+      :name, :kind, :license_plate, :vin, :notes, :active, :truck_type_capacity,
+      :insurance_policy_number, :insurance_provider, :insurance_issued_at, :insurance_expires_at,
+      :insurance_coverage_amount, :insurance_notes
+    )
   end
 
   def vehicle_payload(vehicle)
@@ -47,7 +53,16 @@ class VehiclesController < ApplicationController
       vin: vehicle.vin,
       notes: vehicle.notes,
       active: vehicle.active,
-      truck_type_capacity: vehicle.truck_type_capacity
+      truck_type_capacity: vehicle.truck_type_capacity,
+      insurance: {
+        policy_number: vehicle.insurance_policy_number,
+        provider: vehicle.insurance_provider,
+        issued_at: vehicle.insurance_issued_at,
+        expires_at: vehicle.insurance_expires_at,
+        coverage_amount: vehicle.insurance_coverage_amount,
+        notes: vehicle.insurance_notes,
+        document_url: vehicle.insurance_document.attached? ? Rails.application.routes.url_helpers.rails_blob_url(vehicle.insurance_document, only_path: true) : nil
+      }
     }
   end
 end

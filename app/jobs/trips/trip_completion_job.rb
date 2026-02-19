@@ -10,6 +10,21 @@ module Trips
       Expenses::RecalculateFuelExpenseJob.perform_later(trip_ids: [trip.id], actor_id: actor&.id)
       Maintenance::TripCompletionCheckJob.perform_later(trip.id)
       Fuel::FuelTripAnalysisJob.perform_later(trip.id)
+      update_driver_profile_totals!(trip)
+    end
+
+    private
+
+    def update_driver_profile_totals!(trip)
+      profile = DriverProfile.find_by(user_id: trip.driver_id)
+      return if profile.nil?
+
+      incidents_delta = trip.notes_incidents.present? ? 1 : 0
+      profile.update!(
+        total_trips: profile.total_trips.to_i + 1,
+        total_distance_km: profile.total_distance_km.to_d + trip.distance_km.to_d,
+        total_incidents: profile.total_incidents.to_i + incidents_delta
+      )
     end
   end
 end

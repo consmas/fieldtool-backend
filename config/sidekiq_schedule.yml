@@ -52,3 +52,23 @@ fuel_anomaly_digest_job:
   class: "Fuel::FuelAnomalyDigestJob"
   queue: low
   cron: "0 8 * * *"
+
+calculate_weekly_driver_scores_job:
+  class: "Driver::CalculateWeeklyDriverScoresJob"
+  queue: default
+  cron: "0 2 * * 1"
+
+calculate_monthly_driver_scores_job:
+  class: "Driver::CalculateMonthlyDriverScoresJob"
+  queue: default
+  cron: "0 3 1 * *"
+
+check_driver_document_expiry_job:
+  class: "Driver::CheckDriverDocumentExpiryJob"
+  queue: default
+  cron: "0 7 * * *"
+
+driver_score_notification_job:
+  class: "Driver::DriverScoreNotificationJob"
+  queue: default
+  cron: "0 8 * * 1"
