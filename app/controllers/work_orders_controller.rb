@@ -35,9 +35,11 @@ class WorkOrdersController < ApplicationController
   def create
     authorize WorkOrder, :create?
 
-    work_order = WorkOrder.new(work_order_params)
-    work_order.reporter = current_user
-    work_order.reported_at ||= Time.current
+    attrs = normalized_work_order_params
+    work_order = WorkOrder.new(attrs)
+    work_order.title = default_title_for(work_order.vehicle_id) if work_order.title.blank?
+    work_order.reporter = current_user if work_order.has_attribute?(:reported_by)
+    work_order.reported_at ||= Time.current if work_order.has_attribute?(:reported_at)
     work_order.save!
 
     render json: work_order_payload(work_order), status: :created
@@ -55,7 +57,7 @@ class WorkOrdersController < ApplicationController
     authorize work_order, :update?
 
     immutable = work_order.status.in?(%w[completed cancelled])
-    attrs = immutable ? work_order_params.slice(:notes, :resolution_notes) : work_order_params
+    attrs = immutable ? normalized_work_order_params.slice(:notes, :resolution_notes) : normalized_work_order_params
     work_order.update!(attrs)
 
     render json: work_order_payload(work_order)
@@ -122,6 +124,8 @@ class WorkOrdersController < ApplicationController
       :maintenance_schedule_id,
       :title,
       :description,
+      :status,
+      :type,
       :work_order_type,
       :priority,
       :assigned_to,
@@ -140,6 +144,19 @@ class WorkOrdersController < ApplicationController
     )
   end
 
+  def normalized_work_order_params
+    attrs = work_order_params.to_h.with_indifferent_access
+    attrs[:work_order_type] = attrs.delete(:type) if attrs[:work_order_type].blank? && attrs[:type].present?
+    attrs
+  end
+
+  def default_title_for(vehicle_id)
+    vehicle = Vehicle.find_by(id: vehicle_id)
+    return "Maintenance Work Order" if vehicle.nil?
+
+    "Maintenance - #{vehicle.license_plate.presence || vehicle.name}"
+  end
+
   def work_order_payload(wo, include_timeline: false)
     payload = {
       id: wo.id,
@@ -155,8 +172,8 @@ class WorkOrdersController < ApplicationController
       assigned_to: wo.assigned_to,
       assigned_to_type: wo.assigned_to_type,
       vendor: wo.vendor && { id: wo.vendor.id, name: wo.vendor.name },
-      reported_by: wo.reported_by,
-      reported_at: wo.reported_at,
+      reported_by: (wo.has_attribute?(:reported_by) ? wo[:reported_by] : nil),
+      reported_at: (wo.has_attribute?(:reported_at) ? wo[:reported_at] : nil),
       scheduled_date: wo.scheduled_date,
       started_at: wo.started_at,
       completed_at: wo.completed_at,

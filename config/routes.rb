@@ -77,11 +77,14 @@ Rails.application.routes.draw do
         end
 
         get "vehicles/:vehicle_id/work_orders", to: "/work_orders#by_vehicle"
+        get "maintenance_schedules", to: "/maintenance_schedules#index"
+        post "maintenance_schedules", to: "/maintenance_schedules#create"
         get "vehicles/:vehicle_id/maintenance_schedules", to: "/maintenance_schedules#index"
         post "vehicles/:vehicle_id/maintenance_schedules", to: "/maintenance_schedules#create"
         patch "maintenance_schedules/:id", to: "/maintenance_schedules#update"
         delete "maintenance_schedules/:id", to: "/maintenance_schedules#destroy"
         get "maintenance/due", to: "/maintenance_schedules#due"
+        get "maintenance_schedules/templates", to: "/maintenance_schedules#templates"
         post "maintenance_schedules/templates", to: "/maintenance_schedules#apply_template"
 
         resources :maintenance_vendors, only: [:index, :show, :create, :update], path: "maintenance/vendors", controller: "/maintenance/vendors"

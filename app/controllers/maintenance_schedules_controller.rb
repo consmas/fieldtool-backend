@@ -16,7 +16,7 @@ class MaintenanceSchedulesController < ApplicationController
     authorize MaintenanceSchedule, :create?
 
     schedule = vehicle.maintenance_schedules.new(maintenance_schedule_params)
-    schedule.creator = current_user
+    schedule.creator = current_user if schedule.has_attribute?(:created_by)
     schedule.vehicle_type ||= vehicle.kind
     schedule.last_performed_at ||= Time.current
     schedule.last_performed_km ||= schedule.current_odometer_km
@@ -71,17 +71,29 @@ class MaintenanceSchedulesController < ApplicationController
   def apply_template
     authorize MaintenanceSchedule, :apply_template?
 
-    vehicle = Vehicle.find(params.require(:vehicle_id))
-    template = Maintenance::TemplateCatalog.fetch(params.require(:template))
+    vehicle_id = params[:vehicle_id] || params.dig(:maintenance_schedule, :vehicle_id)
+    template_name = params[:template] || params.dig(:maintenance_schedule, :template)
+
+    raise ActionController::BadRequest, "vehicle_id is required" if vehicle_id.blank?
+
+    vehicle = Vehicle.find(vehicle_id)
+
+    if template_name.blank?
+      custom = build_custom_schedule_from_template_request(vehicle)
+      custom.save!
+      render json: { created_count: 1, data: [schedule_payload(custom)] }, status: :created
+      return
+    end
+
+    template = Maintenance::TemplateCatalog.fetch(template_name)
     raise ActionController::BadRequest, "Unknown template" if template.blank?
 
     created = []
     MaintenanceSchedule.transaction do
       current_odometer = [vehicle.trips.maximum(:end_odometer_km), vehicle.trips.maximum(:start_odometer_km)].compact.max.to_i
       template.each do |attrs|
-        created << vehicle.maintenance_schedules.create!(
+        schedule = vehicle.maintenance_schedules.new(
           attrs.merge(
-            created_by: current_user.id,
             vehicle_type: vehicle.kind,
             last_performed_at: Time.current,
             last_performed_km: current_odometer,
@@ -90,10 +102,28 @@ class MaintenanceSchedulesController < ApplicationController
             is_active: true
           )
         )
+        schedule.creator = current_user if schedule.has_attribute?(:created_by)
+        schedule.save!
+        created << schedule
       end
     end
 
-    render json: { template: params[:template], created_count: created.size, data: created.map { |schedule| schedule_payload(schedule) } }, status: :created
+    render json: { template: template_name, created_count: created.size, data: created.map { |schedule| schedule_payload(schedule) } }, status: :created
+  end
+
+  def templates
+    authorize MaintenanceSchedule, :apply_template?
+
+    render json: {
+      data: Maintenance::TemplateCatalog.keys.map do |name|
+        rows = Maintenance::TemplateCatalog.fetch(name) || []
+        {
+          key: name,
+          items_count: rows.size,
+          items: rows
+        }
+      end
+    }
   end
 
   private
@@ -146,5 +176,52 @@ class MaintenanceSchedulesController < ApplicationController
 
   def cast_bool(value)
     ActiveModel::Type::Boolean.new.cast(value)
+  end
+
+  def build_custom_schedule_from_template_request(vehicle)
+    input = params[:maintenance_schedule].is_a?(ActionController::Parameters) ? params[:maintenance_schedule].to_unsafe_h : {}
+    input = input.with_indifferent_access
+    input[:name] ||= params[:name]
+    input[:description] ||= params[:description]
+    input[:priority] ||= params[:priority]
+    input[:schedule_type] ||= params[:schedule_type]
+    input[:mileage_interval_km] ||= params[:mileage_interval_km]
+    input[:time_interval_days] ||= params[:time_interval_days] || params[:interval_days]
+    input[:next_due_km] ||= params[:next_due_km]
+    input[:next_due_at] ||= params[:next_due_at]
+
+    raise ActionController::BadRequest, "template or name is required" if input[:name].blank?
+
+    schedule_type = input[:schedule_type].presence || inferred_schedule_type(input)
+    current_odometer = [vehicle.trips.maximum(:end_odometer_km), vehicle.trips.maximum(:start_odometer_km)].compact.max.to_i
+    last_performed_at = Time.current
+
+    schedule = vehicle.maintenance_schedules.new(
+      name: input[:name],
+      description: input[:description],
+      schedule_type: schedule_type,
+      mileage_interval_km: input[:mileage_interval_km],
+      time_interval_days: input[:time_interval_days],
+      priority: input[:priority].presence || "medium",
+      notify_before_km: input[:notify_before_km].to_i,
+      notify_before_days: input[:notify_before_days].to_i,
+      vehicle_type: vehicle.kind,
+      last_performed_at: last_performed_at,
+      last_performed_km: current_odometer,
+      next_due_km: input[:next_due_km].presence || (input[:mileage_interval_km].present? ? current_odometer + input[:mileage_interval_km].to_i : nil),
+      next_due_at: input[:next_due_at].presence || (input[:time_interval_days].present? ? last_performed_at + input[:time_interval_days].to_i.days : nil),
+      is_active: true
+    )
+    schedule.creator = current_user if schedule.has_attribute?(:created_by)
+    schedule
+  end
+
+  def inferred_schedule_type(input)
+    mileage_present = input[:mileage_interval_km].present?
+    time_present = input[:time_interval_days].present? || input[:interval_days].present?
+    return "both" if mileage_present && time_present
+    return "mileage" if mileage_present
+
+    "time"
   end
 end
