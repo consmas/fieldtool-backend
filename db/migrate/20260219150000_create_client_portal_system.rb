@@ -41,7 +41,6 @@ class CreateClientPortalSystem < ActiveRecord::Migration[8.0]
       t.timestamps
     end
     add_index :client_users, :email, unique: true
-    add_index :client_users, :client_id
 
     create_table :shipments do |t|
       t.references :trip, null: false, foreign_key: true
@@ -76,8 +75,6 @@ class CreateClientPortalSystem < ActiveRecord::Migration[8.0]
     end
     add_index :shipments, :tracking_number, unique: true
     add_index :shipments, :tracking_link_token, unique: true
-    add_index :shipments, :client_id
-    add_index :shipments, :trip_id
     add_index :shipments, :status
 
     create_table :shipment_events do |t|
@@ -130,6 +127,5 @@ class CreateClientPortalSystem < ActiveRecord::Migration[8.0]
 
     add_reference :trips, :client, null: true, foreign_key: true
     add_column :trips, :client_reference, :string
-    add_index :trips, :client_id
   end
 end

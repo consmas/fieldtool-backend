@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -102,6 +102,49 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.index ["trip_id"], name: "index_chat_threads_on_trip_id", unique: true
   end
 
+  create_table "client_users", force: :cascade do |t|
+    t.bigint "client_id", null: false
+    t.string "email", null: false
+    t.string "password_digest", null: false
+    t.string "name", null: false
+    t.string "phone"
+    t.string "role", default: "viewer", null: false
+    t.boolean "is_active", default: true, null: false
+    t.datetime "last_login_at"
+    t.jsonb "notification_prefs", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_client_users_on_client_id"
+    t.index ["email"], name: "index_client_users_on_email", unique: true
+  end
+
+  create_table "clients", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "code", null: false
+    t.string "contact_name"
+    t.string "contact_email"
+    t.string "contact_phone"
+    t.string "billing_email"
+    t.text "address"
+    t.string "city"
+    t.string "region"
+    t.string "tax_id"
+    t.string "payment_terms"
+    t.string "contract_type"
+    t.string "rate_type"
+    t.decimal "default_rate", precision: 12, scale: 2
+    t.decimal "credit_limit", precision: 12, scale: 2
+    t.decimal "outstanding_balance", precision: 12, scale: 2, default: "0.0", null: false
+    t.boolean "is_active", default: true, null: false
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_clients_on_code", unique: true
+    t.index ["is_active"], name: "index_clients_on_is_active"
+    t.index ["name"], name: "index_clients_on_name"
+  end
+
   create_table "destinations", force: :cascade do |t|
     t.string "name", null: false
     t.decimal "average_distance_km", precision: 10, scale: 2, default: "0.0", null: false
@@ -118,6 +161,59 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.decimal "liters_per_km", precision: 10, scale: 2, default: "1.0", null: false
     t.index ["active"], name: "index_destinations_on_active"
     t.index ["name"], name: "index_destinations_on_name", unique: true
+  end
+
+  create_table "device_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token", null: false
+    t.string "platform", null: false
+    t.string "device_name"
+    t.boolean "is_active", default: true, null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_device_tokens_on_is_active"
+    t.index ["token"], name: "index_device_tokens_on_token", unique: true
+    t.index ["user_id"], name: "index_device_tokens_on_user_id"
+  end
+
+  create_table "escalation_instances", force: :cascade do |t|
+    t.bigint "escalation_rule_id", null: false
+    t.bigint "notification_id", null: false
+    t.string "notifiable_type"
+    t.bigint "notifiable_id"
+    t.integer "current_level", default: 0, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "last_escalated_at"
+    t.datetime "resolved_at"
+    t.bigint "resolved_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["escalation_rule_id"], name: "index_escalation_instances_on_escalation_rule_id"
+    t.index ["notifiable_type", "notifiable_id"], name: "index_escalation_instances_notifiable"
+    t.index ["notification_id"], name: "index_escalation_instances_on_notification_id"
+    t.index ["resolved_by_id"], name: "index_escalation_instances_on_resolved_by_id"
+    t.index ["status"], name: "index_escalation_instances_on_status"
+  end
+
+  create_table "escalation_rules", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "trigger_event", null: false
+    t.string "condition_type", null: false
+    t.integer "condition_minutes", null: false
+    t.integer "escalation_level", default: 1, null: false
+    t.string "escalate_to_role"
+    t.bigint "escalate_to_user_id"
+    t.string "escalation_channels", default: [], null: false, array: true
+    t.string "escalation_priority", default: "high", null: false
+    t.string "escalation_message"
+    t.integer "max_escalations", default: 3, null: false
+    t.boolean "is_active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["escalate_to_user_id"], name: "index_escalation_rules_on_escalate_to_user_id"
+    t.index ["is_active"], name: "index_escalation_rules_on_is_active"
+    t.index ["trigger_event"], name: "index_escalation_rules_on_trigger_event"
   end
 
   create_table "evidence", force: :cascade do |t|
@@ -225,6 +321,42 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.index ["updated_by_id"], name: "index_fuel_prices_on_updated_by_id"
   end
 
+  create_table "invoice_line_items", force: :cascade do |t|
+    t.bigint "invoice_id", null: false
+    t.bigint "shipment_id"
+    t.string "description", null: false
+    t.decimal "quantity", precision: 12, scale: 3, default: "1.0", null: false
+    t.string "unit"
+    t.decimal "unit_price", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "total", precision: 12, scale: 2, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id"], name: "index_invoice_line_items_on_invoice_id"
+    t.index ["shipment_id"], name: "index_invoice_line_items_on_shipment_id"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.bigint "client_id", null: false
+    t.string "invoice_number", null: false
+    t.date "issued_date"
+    t.date "due_date"
+    t.decimal "subtotal", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "tax_rate", precision: 6, scale: 2, default: "0.0", null: false
+    t.decimal "tax_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "total_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "amount_paid", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "balance_due", precision: 12, scale: 2, default: "0.0", null: false
+    t.string "status", default: "draft", null: false
+    t.string "payment_terms"
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_invoices_on_client_id"
+    t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
+    t.index ["status"], name: "index_invoices_on_status"
+  end
+
   create_table "location_pings", force: :cascade do |t|
     t.bigint "trip_id", null: false
     t.decimal "lat", precision: 10, scale: 6, null: false
@@ -289,6 +421,53 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.index ["specializations"], name: "index_maintenance_vendors_on_specializations", using: :gin
   end
 
+  create_table "notification_preferences", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "notification_type", null: false
+    t.boolean "in_app", default: true, null: false
+    t.boolean "push", default: false, null: false
+    t.boolean "sms", default: false, null: false
+    t.boolean "email", default: false, null: false
+    t.boolean "is_enabled", default: true, null: false
+    t.time "quiet_hours_start"
+    t.time "quiet_hours_end"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "notification_type"], name: "index_notification_prefs_user_type", unique: true
+    t.index ["user_id"], name: "index_notification_preferences_on_user_id"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "recipient_id", null: false
+    t.bigint "actor_id"
+    t.string "notification_type", null: false
+    t.string "category", null: false
+    t.string "title", null: false
+    t.text "body"
+    t.string "priority", default: "normal", null: false
+    t.string "notifiable_type"
+    t.bigint "notifiable_id"
+    t.string "action_url"
+    t.string "action_type"
+    t.jsonb "data", default: {}, null: false
+    t.datetime "read_at"
+    t.datetime "seen_at"
+    t.datetime "archived_at"
+    t.string "delivered_via", default: [], null: false, array: true
+    t.datetime "expires_at"
+    t.string "group_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_notifications_on_actor_id"
+    t.index ["category"], name: "index_notifications_on_category"
+    t.index ["group_key"], name: "index_notifications_on_group_key"
+    t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable_type_and_notifiable_id"
+    t.index ["notification_type"], name: "index_notifications_on_notification_type"
+    t.index ["priority"], name: "index_notifications_on_priority"
+    t.index ["read_at"], name: "index_notifications_on_read_at"
+    t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+  end
+
   create_table "pre_trip_inspections", force: :cascade do |t|
     t.bigint "trip_id", null: false
     t.bigint "captured_by_id", null: false
@@ -328,6 +507,59 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.index ["inspection_verified_by_id"], name: "index_pre_trip_inspections_on_inspection_verified_by_id"
     t.index ["load_status"], name: "index_pre_trip_inspections_on_load_status"
     t.index ["trip_id"], name: "index_pre_trip_inspections_on_trip_id", unique: true
+  end
+
+  create_table "shipment_events", force: :cascade do |t|
+    t.bigint "shipment_id", null: false
+    t.string "event_type", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "location"
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.boolean "is_public", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_type"], name: "index_shipment_events_on_event_type"
+    t.index ["shipment_id", "created_at"], name: "index_shipment_events_on_shipment_id_and_created_at"
+    t.index ["shipment_id"], name: "index_shipment_events_on_shipment_id"
+  end
+
+  create_table "shipments", force: :cascade do |t|
+    t.bigint "trip_id", null: false
+    t.bigint "client_id", null: false
+    t.string "tracking_number", null: false
+    t.string "reference_number"
+    t.string "description"
+    t.string "commodity_type"
+    t.decimal "weight_kg", precision: 12, scale: 2
+    t.decimal "volume_cbm", precision: 12, scale: 2
+    t.integer "pieces_count"
+    t.text "pickup_address"
+    t.text "delivery_address"
+    t.datetime "requested_pickup_date"
+    t.datetime "requested_delivery_date"
+    t.datetime "actual_pickup_at"
+    t.datetime "actual_delivery_at"
+    t.string "status", null: false
+    t.decimal "rate_amount", precision: 12, scale: 2
+    t.string "rate_type"
+    t.bigint "invoice_id"
+    t.text "special_instructions"
+    t.boolean "is_tracking_enabled", default: true, null: false
+    t.string "tracking_link_token", null: false
+    t.datetime "tracking_link_expires_at"
+    t.boolean "pod_available", default: false, null: false
+    t.integer "client_rating"
+    t.text "client_feedback"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_shipments_on_client_id"
+    t.index ["status"], name: "index_shipments_on_status"
+    t.index ["tracking_link_token"], name: "index_shipments_on_tracking_link_token", unique: true
+    t.index ["tracking_number"], name: "index_shipments_on_tracking_number", unique: true
+    t.index ["trip_id"], name: "index_shipments_on_trip_id"
   end
 
   create_table "trip_events", force: :cascade do |t|
@@ -445,6 +677,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
     t.string "delivery_map_url"
     t.string "delivery_location_source"
     t.datetime "delivery_location_resolved_at"
+    t.bigint "client_id"
+    t.string "client_reference"
+    t.index ["client_id"], name: "index_trips_on_client_id"
     t.index ["delivery_lat", "delivery_lng"], name: "index_trips_on_delivery_lat_and_delivery_lng"
     t.index ["delivery_place_id"], name: "index_trips_on_delivery_place_id"
     t.index ["dispatcher_id"], name: "index_trips_on_dispatcher_id"
@@ -657,6 +892,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
   add_foreign_key "chat_threads", "trips"
   add_foreign_key "chat_threads", "users", column: "dispatcher_id"
   add_foreign_key "chat_threads", "users", column: "driver_id"
+  add_foreign_key "client_users", "clients"
+  add_foreign_key "device_tokens", "users"
+  add_foreign_key "escalation_instances", "escalation_rules"
+  add_foreign_key "escalation_instances", "notifications"
+  add_foreign_key "escalation_instances", "users", column: "resolved_by_id"
+  add_foreign_key "escalation_rules", "users", column: "escalate_to_user_id"
   add_foreign_key "evidence", "trips"
   add_foreign_key "evidence", "users", column: "uploaded_by_id"
   add_foreign_key "expense_entries", "trips"
@@ -667,15 +908,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
   add_foreign_key "expense_entries", "vehicles"
   add_foreign_key "expense_entry_audits", "expense_entries"
   add_foreign_key "expense_entry_audits", "users", column: "actor_id"
+  add_foreign_key "invoice_line_items", "invoices"
+  add_foreign_key "invoice_line_items", "shipments"
+  add_foreign_key "invoices", "clients"
   add_foreign_key "location_pings", "trips"
   add_foreign_key "location_pings", "users", column: "recorded_by_id"
   add_foreign_key "maintenance_schedules", "users", column: "created_by_id"
   add_foreign_key "maintenance_schedules", "vehicles"
+  add_foreign_key "notification_preferences", "users"
+  add_foreign_key "notifications", "users", column: "actor_id"
+  add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "pre_trip_inspections", "trips"
   add_foreign_key "pre_trip_inspections", "users", column: "captured_by_id"
+  add_foreign_key "shipment_events", "shipments"
+  add_foreign_key "shipments", "clients"
+  add_foreign_key "shipments", "trips"
   add_foreign_key "trip_events", "trips"
   add_foreign_key "trip_events", "users", column: "created_by_id"
   add_foreign_key "trip_stops", "trips"
+  add_foreign_key "trips", "clients"
   add_foreign_key "trips", "users", column: "dispatcher_id"
   add_foreign_key "trips", "users", column: "driver_id"
   add_foreign_key "trips", "users", column: "end_odometer_captured_by_id"
