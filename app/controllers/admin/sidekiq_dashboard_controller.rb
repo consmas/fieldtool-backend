@@ -85,7 +85,7 @@ class Admin::SidekiqDashboardController < ActionController::Base
     redirect_to_sidekiq_dashboard(set: "enqueued", queue: queue_name, alert: "Queue action failed: #{e.message}")
   end
 
-  def process_action
+  def process_control
     identity = params[:identity].to_s
     operation = params[:operation].to_s
     process = Sidekiq::ProcessSet.new.find { |p| p["identity"].to_s == identity }
@@ -102,7 +102,7 @@ class Admin::SidekiqDashboardController < ActionController::Base
       redirect_to_sidekiq_dashboard(alert: "Unsupported process operation")
     end
   rescue StandardError => e
-    redirect_to_sidekiq_dashboard(alert: "Process action failed: #{e.message}")
+      redirect_to_sidekiq_dashboard(alert: "Process action failed: #{e.message}")
   end
 
   private
