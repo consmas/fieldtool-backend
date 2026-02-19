@@ -9,6 +9,7 @@ Rails.application.routes.draw do
   end
 
   mount Sidekiq::Web => "/admin/sidekiq"
+  get "/admin/sidekiq-dashboard", to: "admin/sidekiq_dashboard#show"
 
   devise_for :users, defaults: { format: :json }, controllers: { sessions: "auth/sessions" }, skip: [:registrations]
   devise_scope :user do
@@ -55,6 +56,7 @@ Rails.application.routes.draw do
           get "webhooks/stats", to: "webhooks#stats"
           get "webhooks/subscriptions", to: "webhooks#subscriptions"
           patch "webhooks/subscriptions/:id/reactivate", to: "webhooks#reactivate"
+          get "sidekiq/dashboard", to: "sidekiq_dashboard#show"
         end
       end
     end
