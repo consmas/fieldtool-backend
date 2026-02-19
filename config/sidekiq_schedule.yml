@@ -37,3 +37,8 @@ check_vehicle_document_expiry_job:
   class: "Maintenance::CheckDocumentExpiryJob"
   queue: low
   cron: "0 5 * * *"
+
+process_escalations_job:
+  class: "Notifications::ProcessEscalationsJob"
+  queue: default
+  cron: "*/5 * * * *"

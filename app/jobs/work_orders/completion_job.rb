@@ -39,6 +39,16 @@ module WorkOrders
       )
 
       work_order.update!(expense_entry_id: expense.id)
+      NotificationService.notify(
+        notification_type: "maintenance.work_order_completed",
+        recipients: ["admin", "finance"],
+        notifiable: work_order,
+        data: {
+          wo_number: work_order.work_order_number,
+          vehicle_reg: work_order.vehicle&.license_plate,
+          cost: work_order.actual_cost.to_d
+        }
+      )
     end
   end
 end

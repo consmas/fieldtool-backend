@@ -34,6 +34,9 @@ Rails.application.routes.draw do
       end
     end
     resources :fuel_prices, only: [:index, :create]
+    get "maintenance/my_vehicle", to: "maintenance/driver#my_vehicle"
+    get "maintenance/snapshot", to: "maintenance/driver#snapshot"
+    get "drivers/me/maintenance", to: "maintenance/driver#driver_maintenance"
     namespace :reports, module: "reports", as: "reports" do
       get :overview, to: "dashboard#overview"
       get :trips, to: "dashboard#trips"
@@ -63,6 +66,21 @@ Rails.application.routes.draw do
           patch "webhooks/subscriptions/:id/reactivate", to: "webhooks#reactivate"
           get "sidekiq/dashboard", to: "sidekiq_dashboard#show"
         end
+        resources :notifications, only: [:index, :destroy], controller: "/notifications" do
+          collection do
+            get :unread_count, to: "/notifications#unread_count"
+            post :mark_all_read, to: "/notifications#mark_all_read"
+          end
+          member do
+            patch :read, to: "/notifications#mark_read"
+            patch :archive, to: "/notifications#archive"
+          end
+        end
+        get "notifications/preferences", to: "/notification_preferences#index"
+        put "notifications/preferences", to: "/notification_preferences#update"
+        put "notifications/preferences/quiet_hours", to: "/notification_preferences#quiet_hours"
+        post "devices", to: "/devices#create"
+        delete "devices/:token", to: "/devices#destroy"
 
         resources :work_orders, only: [:index, :show, :create, :update], controller: "/work_orders" do
           member do
@@ -96,6 +114,10 @@ Rails.application.routes.draw do
 
         get "reports/maintenance", to: "/reports/maintenance#index"
         get "reports/vehicles/:id/maintenance_history", to: "/reports/maintenance#vehicle_history"
+        namespace :admin, module: "admin" do
+          resources :escalation_rules, only: [:index, :create, :update]
+          get "escalations/active", to: "escalations#active"
+        end
       end
     end
 

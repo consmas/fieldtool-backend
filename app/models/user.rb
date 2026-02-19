@@ -35,6 +35,11 @@ class User < ApplicationRecord
   has_many :created_maintenance_schedules, class_name: "MaintenanceSchedule", foreign_key: :created_by, dependent: :nullify, inverse_of: :creator
   has_many :reported_work_orders, class_name: "WorkOrder", foreign_key: :reported_by, dependent: :nullify, inverse_of: :reporter
   has_many :work_order_comments, dependent: :destroy
+  has_many :notifications, foreign_key: :recipient_id, dependent: :destroy, inverse_of: :recipient
+  has_many :authored_notifications, class_name: "Notification", foreign_key: :actor_id, dependent: :nullify, inverse_of: :actor
+  has_many :notification_preferences, dependent: :destroy
+  has_many :device_tokens, dependent: :destroy
+  has_many :escalation_rules, foreign_key: :escalate_to_user_id, dependent: :nullify, inverse_of: :escalate_to_user
 
   validates :role, presence: true
 end

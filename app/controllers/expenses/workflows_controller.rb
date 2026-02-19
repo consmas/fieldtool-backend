@@ -10,6 +10,13 @@ class Expenses::WorkflowsController < ApplicationController
     expense.submit!
     audit(expense, "submitted", from_status, expense.status)
     emit_expense_event(expense, "submitted")
+    NotificationService.notify(
+      notification_type: "expense.approval_needed",
+      recipients: ["finance", "admin"],
+      actor: current_user,
+      notifiable: expense,
+      data: { amount: expense.amount.to_d, category: expense.category }
+    )
     render json: { id: expense.id, status: expense.status }
   end
 

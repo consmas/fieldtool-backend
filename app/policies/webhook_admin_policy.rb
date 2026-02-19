@@ -1,4 +1,8 @@
 class WebhookAdminPolicy < ApplicationPolicy
+  def show?
+    finance_or_admin?
+  end
+
   def stats?
     finance_or_admin?
   end

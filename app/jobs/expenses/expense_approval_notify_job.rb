@@ -6,10 +6,16 @@ module Expenses
       expense = ExpenseEntry.find_by(id: expense_id)
       return if expense.nil?
 
-      Notifications::InAppNotificationJob.perform_later(
-        recipient_user_id: expense.created_by_id,
-        kind: "expense_#{action}",
-        payload: { expense_id: expense.id, status: expense.status, action: action }
+      notification_type = action.to_s == "approved" ? "expense.approved" : "expense.rejected"
+      NotificationService.notify(
+        notification_type: notification_type,
+        recipients: [expense.created_by_id].compact,
+        notifiable: expense,
+        data: {
+          amount: expense.amount.to_d,
+          category: expense.category,
+          reason: expense.metadata&.dig("rejection_reason")
+        }
       )
     end
   end

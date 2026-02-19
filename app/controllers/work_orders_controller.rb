@@ -41,6 +41,17 @@ class WorkOrdersController < ApplicationController
     work_order.reporter = current_user if work_order.has_attribute?(:reported_by)
     work_order.reported_at ||= Time.current if work_order.has_attribute?(:reported_at)
     work_order.save!
+    NotificationService.notify(
+      notification_type: "maintenance.work_order_created",
+      recipients: ["admin", "supervisor"],
+      actor: current_user,
+      notifiable: work_order,
+      data: {
+        wo_number: work_order.work_order_number,
+        vehicle_reg: work_order.vehicle&.license_plate,
+        title: work_order.title
+      }
+    )
 
     render json: work_order_payload(work_order), status: :created
   end

@@ -33,11 +33,26 @@ module Trips
 
       Expenses::AutoGenerateRoadExpenseJob.perform_later(trip.id, actor&.id) if new_status.to_s == "en_route"
       Trips::TripCompletionJob.perform_later(trip.id, actor&.id) if new_status.to_s == "completed"
-      Notifications::InAppNotificationJob.perform_later(
-        recipient_user_id: trip.driver_id,
-        kind: "trip_status_changed",
-        payload: { trip_id: trip.id, from: old_status, to: new_status }
-      )
+      notification_type = case new_status.to_s
+      when "assigned" then "trip.assigned"
+      when "en_route" then "trip.started"
+      when "completed" then "trip.completed"
+      else nil
+      end
+      if notification_type
+        NotificationService.notify(
+          notification_type: notification_type,
+          recipients: [trip.driver_id],
+          actor: actor,
+          notifiable: trip,
+          data: {
+            trip_number: trip.reference_code || "TRIP-#{trip.id}",
+            origin: trip.loading_point.presence || "N/A",
+            destination: trip.destination.presence || "N/A",
+            distance_km: trip.distance_km.to_d
+          }
+        )
+      end
     end
   end
 end

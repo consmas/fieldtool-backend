@@ -15,7 +15,20 @@ module Maintenance
                           "active"
                         end
 
-        doc.update!(status: target_status) if doc.status != target_status
+        next if doc.status == target_status
+
+        doc.update!(status: target_status)
+        NotificationService.notify(
+          notification_type: (target_status == "expired" ? "compliance.document_expired" : "compliance.document_expiring"),
+          recipients: ["admin", "supervisor"],
+          notifiable: doc,
+          data: {
+            document_type: doc.document_type.to_s.humanize,
+            vehicle_reg: doc.vehicle&.license_plate,
+            days_remaining: days_remaining
+          },
+          group_key: "vehicle_document_#{doc.id}"
+        )
       end
     end
   end
