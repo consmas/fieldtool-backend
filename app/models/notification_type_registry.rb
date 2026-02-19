@@ -84,6 +84,13 @@ class NotificationTypeRegistry
       default_channels: { in_app: true, push: true, sms: true, email: true },
       roles: ["admin", "supervisor"]
     },
+    "fuel.anomaly_detected" => {
+      category: "alert", priority: "high",
+      title_template: "Fuel Anomaly Detected",
+      body_template: "Trip %{trip_number}: expected %{expected_liters}L, actual %{actual_liters}L",
+      default_channels: { in_app: true, push: true, sms: false, email: true },
+      roles: ["admin", "finance"]
+    },
     "chat.new_message" => {
       category: "chat", priority: "normal",
       title_template: "New Message",

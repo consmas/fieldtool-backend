@@ -6,6 +6,8 @@ class Vehicle < ApplicationRecord
   has_many :maintenance_schedules, dependent: :destroy
   has_many :work_orders, dependent: :destroy
   has_many :vehicle_documents, dependent: :destroy
+  has_many :fuel_logs, dependent: :destroy
+  has_many :fuel_analysis_records, dependent: :destroy
 
   validates :name, presence: true
   validates :kind, presence: true

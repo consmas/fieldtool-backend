@@ -42,3 +42,13 @@ process_escalations_job:
   class: "Notifications::ProcessEscalationsJob"
   queue: default
   cron: "*/5 * * * *"
+
+fuel_baseline_recalculation_job:
+  class: "Fuel::FuelBaselineRecalculationJob"
+  queue: low
+  cron: "0 4 * * 1"
+
+fuel_anomaly_digest_job:
+  class: "Fuel::FuelAnomalyDigestJob"
+  queue: low
+  cron: "0 8 * * *"

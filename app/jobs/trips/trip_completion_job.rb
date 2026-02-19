@@ -9,6 +9,7 @@ module Trips
       actor = User.find_by(id: actor_id) if actor_id.present?
       Expenses::RecalculateFuelExpenseJob.perform_later(trip_ids: [trip.id], actor_id: actor&.id)
       Maintenance::TripCompletionCheckJob.perform_later(trip.id)
+      Fuel::FuelTripAnalysisJob.perform_later(trip.id)
     end
   end
 end

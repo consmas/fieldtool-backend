@@ -68,6 +68,8 @@ class Trip < ApplicationRecord
   has_many :trip_events, dependent: :destroy
   has_many :expense_entries, dependent: :nullify
   has_one :shipment, dependent: :nullify
+  has_many :fuel_logs, dependent: :nullify
+  has_many :fuel_analysis_records, dependent: :nullify
   has_one :pre_trip_inspection, dependent: :destroy
   has_many :trip_stops, dependent: :destroy
   has_one :chat_thread, dependent: :destroy

@@ -40,6 +40,10 @@ class User < ApplicationRecord
   has_many :notification_preferences, dependent: :destroy
   has_many :device_tokens, dependent: :destroy
   has_many :escalation_rules, foreign_key: :escalate_to_user_id, dependent: :nullify, inverse_of: :escalate_to_user
+  has_many :fuel_logs_as_driver, class_name: "FuelLog", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
+  has_many :fuel_logs_recorded, class_name: "FuelLog", foreign_key: :recorded_by, dependent: :nullify, inverse_of: :recorder
+  has_many :fuel_analysis_records_as_driver, class_name: "FuelAnalysisRecord", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
+  has_many :fuel_analysis_records_investigated, class_name: "FuelAnalysisRecord", foreign_key: :investigated_by, dependent: :nullify, inverse_of: :investigator
 
   validates :role, presence: true
 end

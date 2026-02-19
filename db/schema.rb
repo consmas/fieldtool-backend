@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -309,6 +309,70 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_150000) do
     t.index ["job_class"], name: "index_failed_jobs_on_job_class"
     t.index ["queue_name"], name: "index_failed_jobs_on_queue_name"
     t.index ["status"], name: "index_failed_jobs_on_status"
+  end
+
+  create_table "fuel_analysis_records", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "trip_id"
+    t.bigint "driver_id"
+    t.string "analysis_type", null: false
+    t.decimal "distance_km", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "fuel_consumed_liters", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "expected_consumption_liters", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "actual_km_per_liter", precision: 12, scale: 4
+    t.decimal "expected_km_per_liter", precision: 12, scale: 4
+    t.decimal "variance_percent", precision: 8, scale: 2, default: "0.0", null: false
+    t.decimal "variance_liters", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "anomaly_score", precision: 6, scale: 2, default: "0.0", null: false
+    t.boolean "is_anomaly", default: false, null: false
+    t.string "anomaly_type"
+    t.string "anomaly_severity"
+    t.string "possible_causes", default: [], null: false, array: true
+    t.string "investigation_status"
+    t.text "investigation_notes"
+    t.bigint "investigated_by_id"
+    t.datetime "period_start"
+    t.datetime "period_end"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["anomaly_severity"], name: "index_fuel_analysis_records_on_anomaly_severity"
+    t.index ["driver_id"], name: "index_fuel_analysis_records_on_driver_id"
+    t.index ["investigated_by_id"], name: "index_fuel_analysis_records_on_investigated_by_id"
+    t.index ["investigation_status"], name: "index_fuel_analysis_records_on_investigation_status"
+    t.index ["is_anomaly"], name: "index_fuel_analysis_records_on_is_anomaly"
+    t.index ["trip_id"], name: "index_fuel_analysis_records_on_trip_id"
+    t.index ["vehicle_id"], name: "index_fuel_analysis_records_on_vehicle_id"
+  end
+
+  create_table "fuel_logs", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "trip_id"
+    t.bigint "driver_id"
+    t.string "transaction_type", null: false
+    t.string "fuel_type", default: "diesel", null: false
+    t.decimal "liters", precision: 12, scale: 3, null: false
+    t.decimal "cost_per_liter", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "total_cost", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "odometer_reading"
+    t.string "station_name"
+    t.string "station_location"
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.string "fuel_card_reference"
+    t.string "receipt_number"
+    t.boolean "is_full_tank", default: false, null: false
+    t.datetime "fueled_at", null: false
+    t.bigint "recorded_by_id"
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["driver_id"], name: "index_fuel_logs_on_driver_id"
+    t.index ["fueled_at"], name: "index_fuel_logs_on_fueled_at"
+    t.index ["recorded_by_id"], name: "index_fuel_logs_on_recorded_by_id"
+    t.index ["transaction_type"], name: "index_fuel_logs_on_transaction_type"
+    t.index ["trip_id"], name: "index_fuel_logs_on_trip_id"
+    t.index ["vehicle_id"], name: "index_fuel_logs_on_vehicle_id"
   end
 
   create_table "fuel_prices", force: :cascade do |t|
@@ -743,6 +807,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_150000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "truck_type_capacity"
+    t.string "fuel_type", default: "diesel"
+    t.decimal "tank_capacity_liters", precision: 12, scale: 3
+    t.decimal "baseline_km_per_liter", precision: 12, scale: 4
+    t.decimal "anomaly_threshold_percent", precision: 8, scale: 2, default: "20.0"
+    t.decimal "average_km_per_liter", precision: 12, scale: 4
+    t.decimal "total_fuel_consumed_liters", precision: 14, scale: 3, default: "0.0"
+    t.decimal "total_fuel_cost", precision: 14, scale: 2, default: "0.0"
     t.index ["active"], name: "index_vehicles_on_active"
     t.index ["kind"], name: "index_vehicles_on_kind"
     t.index ["license_plate"], name: "index_vehicles_on_license_plate"
@@ -908,6 +979,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_150000) do
   add_foreign_key "expense_entries", "vehicles"
   add_foreign_key "expense_entry_audits", "expense_entries"
   add_foreign_key "expense_entry_audits", "users", column: "actor_id"
+  add_foreign_key "fuel_analysis_records", "trips"
+  add_foreign_key "fuel_analysis_records", "users", column: "driver_id"
+  add_foreign_key "fuel_analysis_records", "users", column: "investigated_by_id"
+  add_foreign_key "fuel_analysis_records", "vehicles"
+  add_foreign_key "fuel_logs", "trips"
+  add_foreign_key "fuel_logs", "users", column: "driver_id"
+  add_foreign_key "fuel_logs", "users", column: "recorded_by_id"
+  add_foreign_key "fuel_logs", "vehicles"
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoice_line_items", "shipments"
   add_foreign_key "invoices", "clients"

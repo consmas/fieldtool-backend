@@ -105,6 +105,15 @@ Rails.application.routes.draw do
         put "notifications/preferences/quiet_hours", to: "/notification_preferences#quiet_hours"
         post "devices", to: "/devices#create"
         delete "devices/:token", to: "/devices#destroy"
+        get "vehicles/:vehicle_id/fuel_logs", to: "/fuel_logs#index"
+        post "vehicles/:vehicle_id/fuel_logs", to: "/fuel_logs#create_for_vehicle"
+        post "trips/:trip_id/fuel_logs", to: "/fuel_logs#create_for_trip"
+        get "fuel_logs", to: "/fuel_logs#index"
+        get "fuel/analysis", to: "/fuel/analysis#index"
+        get "fuel/anomalies", to: "/fuel/analysis#anomalies"
+        patch "fuel/analysis/:id/investigate", to: "/fuel/analysis#investigate"
+        get "fuel/analysis/vehicle/:vehicle_id", to: "/fuel/analysis#vehicle"
+        get "fuel/analysis/driver/:driver_id", to: "/fuel/analysis#driver"
 
         resources :work_orders, only: [:index, :show, :create, :update], controller: "/work_orders" do
           member do
@@ -138,6 +147,7 @@ Rails.application.routes.draw do
 
         get "reports/maintenance", to: "/reports/maintenance#index"
         get "reports/vehicles/:id/maintenance_history", to: "/reports/maintenance#vehicle_history"
+        get "reports/fuel", to: "/reports/fuel#index"
         namespace :admin, module: "admin" do
           resources :escalation_rules, only: [:index, :create, :update]
           get "escalations/active", to: "escalations#active"
