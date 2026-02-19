@@ -59,6 +59,30 @@ Rails.application.routes.draw do
           end
           post "test_receiver", to: "test_receiver#create"
         end
+        namespace :client, module: "client" do
+          post "auth/login", to: "auth#login"
+          post "auth/logout", to: "auth#logout"
+          post "auth/forgot_password", to: "auth#forgot_password"
+          post "auth/reset_password", to: "auth#reset_password"
+
+          get "dashboard", to: "dashboard#show"
+          get "shipments", to: "shipments#index"
+          get "shipments/:tracking_number", to: "shipments#show"
+          get "shipments/:tracking_number/track", to: "shipments#track"
+          get "shipments/:tracking_number/events", to: "shipments#events"
+          get "shipments/:tracking_number/pod", to: "shipments#pod"
+          post "shipments/:tracking_number/feedback", to: "shipments#feedback"
+
+          get "invoices", to: "invoices#index"
+          get "invoices/:invoice_number", to: "invoices#show"
+          get "invoices/:invoice_number/pdf", to: "invoices#pdf"
+          get "billing/summary", to: "invoices#summary"
+
+          get "profile", to: "profile#show"
+          patch "profile", to: "profile#update"
+          patch "profile/password", to: "profile#password"
+        end
+        get "track/:tracking_link_token", to: "/api/v1/public_tracking#show"
 
         namespace :admin, module: "admin" do
           get "webhooks/stats", to: "webhooks#stats"
@@ -118,6 +142,17 @@ Rails.application.routes.draw do
           resources :escalation_rules, only: [:index, :create, :update]
           get "escalations/active", to: "escalations#active"
         end
+        resources :clients, controller: "/api/v1/clients", only: [:index, :create, :show, :update] do
+          member do
+            get :shipments, to: "/api/v1/clients#shipments"
+            get :users, to: "/api/v1/clients#users"
+            post "users", to: "/api/v1/clients#create_user"
+            patch "users/:user_id", to: "/api/v1/clients#update_user"
+            post "invoices", to: "/api/v1/clients#create_invoice"
+          end
+        end
+        post "invoices/:id/send", to: "/api/v1/clients#send_invoice"
+        post "invoices/:id/payment", to: "/api/v1/clients#record_payment"
       end
     end
 

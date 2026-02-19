@@ -57,6 +57,7 @@ class Trip < ApplicationRecord
   belongs_to :driver, class_name: "User", inverse_of: :assigned_trips
   belongs_to :dispatcher, class_name: "User", optional: true
   belongs_to :vehicle, optional: true
+  belongs_to :client, optional: true
   belongs_to :start_odometer_captured_by, class_name: "User", optional: true
   belongs_to :end_odometer_captured_by, class_name: "User", optional: true
   belongs_to :fuel_allocated_by, class_name: "User", optional: true
@@ -66,6 +67,7 @@ class Trip < ApplicationRecord
   has_many :evidence, dependent: :destroy
   has_many :trip_events, dependent: :destroy
   has_many :expense_entries, dependent: :nullify
+  has_one :shipment, dependent: :nullify
   has_one :pre_trip_inspection, dependent: :destroy
   has_many :trip_stops, dependent: :destroy
   has_one :chat_thread, dependent: :destroy
@@ -89,6 +91,7 @@ class Trip < ApplicationRecord
 
   before_validation :sync_reference_with_waybill
   before_validation :sync_truck_reg_no
+  after_commit :sync_client_shipment, on: [:create, :update]
 
   def latest_location
     location_pings.order(recorded_at: :desc).first
@@ -226,5 +229,13 @@ class Trip < ApplicationRecord
     else
       true
     end
+  end
+
+  def sync_client_shipment
+    return if client_id.blank?
+
+    Shipments::SyncFromTripService.call(self)
+  rescue StandardError
+    nil
   end
 end
