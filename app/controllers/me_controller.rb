@@ -1,4 +1,6 @@
 class MeController < ApplicationController
+  before_action :ensure_driver_profile_schema!, only: [:profile, :documents, :create_document, :scores, :badges, :rank, :improvement_tips]
+
   def profile
     render json: current_profile_payload
   end
@@ -108,6 +110,14 @@ class MeController < ApplicationController
   end
 
   private
+
+  def ensure_driver_profile_schema!
+    required_tables = %w[driver_profiles driver_documents driver_scores driver_badges]
+    missing = required_tables.reject { |table| ActiveRecord::Base.connection.data_source_exists?(table) }
+    return if missing.empty?
+
+    render json: { error: "Driver performance module is not migrated yet", missing_tables: missing }, status: :service_unavailable
+  end
 
   def ensure_driver_profile!
     raise ActiveRecord::RecordNotFound, "Driver profile not found" unless current_user.driver?
