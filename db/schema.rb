@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_18_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -193,6 +193,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_170000) do
     t.index ["actor_id"], name: "index_expense_entry_audits_on_actor_id"
     t.index ["created_at"], name: "index_expense_entry_audits_on_created_at"
     t.index ["expense_entry_id"], name: "index_expense_entry_audits_on_expense_entry_id"
+  end
+
+  create_table "failed_jobs", force: :cascade do |t|
+    t.string "job_class", null: false
+    t.string "queue_name"
+    t.jsonb "arguments", default: [], null: false
+    t.string "error_class"
+    t.text "error_message"
+    t.text "backtrace"
+    t.string "status", default: "failed", null: false
+    t.string "context"
+    t.datetime "failed_at", null: false
+    t.datetime "retried_at"
+    t.datetime "resolved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["failed_at"], name: "index_failed_jobs_on_failed_at"
+    t.index ["job_class"], name: "index_failed_jobs_on_job_class"
+    t.index ["queue_name"], name: "index_failed_jobs_on_queue_name"
+    t.index ["status"], name: "index_failed_jobs_on_status"
   end
 
   create_table "fuel_prices", force: :cascade do |t|
@@ -424,6 +444,67 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_170000) do
     t.index ["license_plate"], name: "index_vehicles_on_license_plate"
   end
 
+  create_table "webhook_deliveries", force: :cascade do |t|
+    t.bigint "webhook_subscription_id", null: false
+    t.bigint "webhook_event_id"
+    t.string "event_type", null: false
+    t.string "idempotency_key", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "status", default: "pending", null: false
+    t.integer "attempts", default: 0, null: false
+    t.integer "max_attempts", default: 5, null: false
+    t.datetime "last_attempt_at"
+    t.datetime "next_retry_at"
+    t.integer "response_code"
+    t.text "response_body"
+    t.integer "response_duration_ms"
+    t.string "error_message"
+    t.datetime "delivered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_type"], name: "index_webhook_deliveries_on_event_type"
+    t.index ["idempotency_key"], name: "index_webhook_deliveries_on_idempotency_key", unique: true
+    t.index ["next_retry_at"], name: "index_webhook_deliveries_on_next_retry_at"
+    t.index ["status"], name: "index_webhook_deliveries_on_status"
+    t.index ["webhook_event_id"], name: "index_webhook_deliveries_on_webhook_event_id"
+    t.index ["webhook_subscription_id"], name: "index_webhook_deliveries_on_webhook_subscription_id"
+  end
+
+  create_table "webhook_events", force: :cascade do |t|
+    t.string "event_type", null: false
+    t.string "resource_type"
+    t.bigint "resource_id"
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "triggered_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_type"], name: "index_webhook_events_on_event_type"
+    t.index ["resource_type", "resource_id"], name: "index_webhook_events_on_resource_type_and_resource_id"
+    t.index ["triggered_by"], name: "index_webhook_events_on_triggered_by"
+  end
+
+  create_table "webhook_subscriptions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "organization_id"
+    t.string "url", null: false
+    t.string "secret", null: false
+    t.string "event_types", default: [], null: false, array: true
+    t.boolean "is_active", default: true, null: false
+    t.string "description"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "last_triggered_at"
+    t.integer "failure_count", default: 0, null: false
+    t.datetime "disabled_at"
+    t.datetime "deleted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_webhook_subscriptions_on_deleted_at"
+    t.index ["event_types"], name: "index_webhook_subscriptions_on_event_types", using: :gin
+    t.index ["is_active"], name: "index_webhook_subscriptions_on_is_active"
+    t.index ["organization_id"], name: "index_webhook_subscriptions_on_organization_id"
+    t.index ["user_id"], name: "index_webhook_subscriptions_on_user_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "chat_conversation_messages", "chat_conversations", column: "conversation_id"
@@ -458,4 +539,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_170000) do
   add_foreign_key "trips", "users", column: "end_odometer_captured_by_id"
   add_foreign_key "trips", "users", column: "start_odometer_captured_by_id"
   add_foreign_key "trips", "vehicles"
+  add_foreign_key "webhook_deliveries", "webhook_events"
+  add_foreign_key "webhook_deliveries", "webhook_subscriptions"
+  add_foreign_key "webhook_subscriptions", "users"
 end

@@ -1,4 +1,15 @@
+require "sidekiq/web"
+
 Rails.application.routes.draw do
+  Sidekiq::Web.use Rack::Auth::Basic do |username, password|
+    user = User.find_by(email: username)
+    user&.admin? && user.valid_password?(password)
+  rescue StandardError
+    false
+  end
+
+  mount Sidekiq::Web => "/admin/sidekiq"
+
   devise_for :users, defaults: { format: :json }, controllers: { sessions: "auth/sessions" }, skip: [:registrations]
   devise_scope :user do
     post "auth/login", to: "auth/sessions#create"
@@ -23,6 +34,33 @@ Rails.application.routes.draw do
       get :expenses, to: "dashboard#expenses"
       get :drivers, to: "dashboard#drivers"
       get :vehicles, to: "dashboard#vehicles"
+    end
+    namespace :api do
+      namespace :v1 do
+        namespace :webhooks, module: "webhooks" do
+          resources :subscriptions, only: [:index, :show, :create, :update, :destroy] do
+            member do
+              post :test
+            end
+          end
+          resources :deliveries, only: [:index] do
+            member do
+              post :retry
+            end
+          end
+          post "test_receiver", to: "test_receiver#create"
+        end
+
+        namespace :admin, module: "admin" do
+          get "webhooks/stats", to: "webhooks#stats"
+          get "webhooks/subscriptions", to: "webhooks#subscriptions"
+          patch "webhooks/subscriptions/:id/reactivate", to: "webhooks#reactivate"
+        end
+      end
+    end
+
+    namespace :admin do
+      get "sidekiq/health", to: "sidekiq_health#show"
     end
     resources :expenses, only: [:index, :create, :update, :destroy] do
       collection do

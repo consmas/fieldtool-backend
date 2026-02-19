@@ -29,6 +29,13 @@ class TripsController < ApplicationController
       data: { status: trip.status }
     )
 
+    WebhookEventService.emit(
+      "trip.created",
+      resource: trip,
+      payload: Webhooks::TripWebhookSerializer.new(trip).as_json,
+      triggered_by: current_user
+    )
+
     render json: trip_payload(trip, include_latest_location: false), status: :created
   end
 
@@ -46,6 +53,7 @@ class TripsController < ApplicationController
           created_by: current_user,
           data: { from: previous_status, to: status_param }
         )
+        Trips::TripStatusChangeJob.perform_later(trip.id, previous_status, trip.status, current_user.id)
       else
         return render json: { error: trip.errors.full_messages.presence || ["Invalid status transition"] }, status: :unprocessable_entity
       end

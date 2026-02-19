@@ -26,6 +26,14 @@ class Trips::PreTripVerificationsController < ApplicationController
       created_by: current_user
     )
 
+    event_type = status == "rejected" ? "inspection.failed" : "inspection.verified"
+    WebhookEventService.emit(
+      event_type,
+      resource: pre_trip,
+      payload: Webhooks::InspectionWebhookSerializer.new(pre_trip).as_json,
+      triggered_by: current_user
+    )
+
     render json: { status: pre_trip.inspection_verification_status }
   end
 

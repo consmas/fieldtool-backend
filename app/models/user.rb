@@ -30,6 +30,8 @@ class User < ApplicationRecord
   has_many :chat_conversation_participants, dependent: :destroy, inverse_of: :user
   has_many :chat_conversations, through: :chat_conversation_participants
   has_many :sent_chat_conversation_messages, class_name: "ChatConversationMessage", foreign_key: :sender_id, dependent: :nullify, inverse_of: :sender
+  has_many :webhook_subscriptions, dependent: :destroy
+  has_many :webhook_events, foreign_key: :triggered_by, dependent: :nullify, inverse_of: :triggered_by_user
 
   validates :role, presence: true
 end

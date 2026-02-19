@@ -119,3 +119,15 @@ If you want background jobs, add:
       - db
     restart: unless-stopped
 ```
+
+## Webhooks + Sidekiq Notes
+
+- Set these environment variables in production:
+  - `SIDEKIQ_REDIS_URL=redis://redis:6379/1`
+  - `SIDEKIQ_CONCURRENCY=10`
+  - `WEBHOOK_MAX_RETRIES=5`
+  - `WEBHOOK_CIRCUIT_BREAKER_THRESHOLD=10`
+  - `WEBHOOK_ENFORCE_HTTPS=true`
+- Sidekiq Web UI is mounted at `/admin/sidekiq` and requires admin user credentials (email/password).
+- Sidekiq health endpoint:
+  - `GET /admin/sidekiq/health`

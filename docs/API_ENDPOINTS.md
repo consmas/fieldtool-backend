@@ -303,6 +303,23 @@ All requests (except login) require:
 
 ## System
 - `GET /up`
+- `GET /admin/sidekiq/health` (admin/finance)
+
+## Webhooks (v1)
+- `POST /api/v1/webhooks/subscriptions`
+- `GET /api/v1/webhooks/subscriptions`
+- `GET /api/v1/webhooks/subscriptions/:id`
+- `PATCH /api/v1/webhooks/subscriptions/:id`
+- `DELETE /api/v1/webhooks/subscriptions/:id`
+- `POST /api/v1/webhooks/subscriptions/:id/test`
+- `GET /api/v1/webhooks/deliveries`
+- `POST /api/v1/webhooks/deliveries/:id/retry` (admin only)
+- `POST /api/v1/webhooks/test_receiver` (non-production)
+
+Webhook admin:
+- `GET /api/v1/admin/webhooks/stats`
+- `GET /api/v1/admin/webhooks/subscriptions`
+- `PATCH /api/v1/admin/webhooks/subscriptions/:id/reactivate`
 
 ## Expenses (Fleet Cost Ledger)
 - `GET /expenses`

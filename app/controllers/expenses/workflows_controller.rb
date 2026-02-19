@@ -9,6 +9,7 @@ class Expenses::WorkflowsController < ApplicationController
     from_status = expense.status
     expense.submit!
     audit(expense, "submitted", from_status, expense.status)
+    emit_expense_event(expense, "submitted")
     render json: { id: expense.id, status: expense.status }
   end
 
@@ -18,6 +19,8 @@ class Expenses::WorkflowsController < ApplicationController
     from_status = expense.status
     expense.approve!(by_user: current_user)
     audit(expense, "approved", from_status, expense.status)
+    emit_expense_event(expense, "approved")
+    Expenses::ExpenseApprovalNotifyJob.perform_later(expense.id, "approved")
     render json: { id: expense.id, status: expense.status, approved_at: expense.approved_at }
   end
 
@@ -30,6 +33,8 @@ class Expenses::WorkflowsController < ApplicationController
     from_status = expense.status
     expense.reject!(reason: reason)
     audit(expense, "rejected", from_status, expense.status, reason:)
+    emit_expense_event(expense, "rejected")
+    Expenses::ExpenseApprovalNotifyJob.perform_later(expense.id, "rejected")
     render json: { id: expense.id, status: expense.status }
   end
 
@@ -39,6 +44,7 @@ class Expenses::WorkflowsController < ApplicationController
     from_status = expense.status
     expense.mark_paid!(by_user: current_user)
     audit(expense, "marked_paid", from_status, expense.status)
+    emit_expense_event(expense, "paid")
     render json: { id: expense.id, status: expense.status, paid_at: expense.paid_at }
   end
 
@@ -57,5 +63,16 @@ class Expenses::WorkflowsController < ApplicationController
       to_status: to_status,
       reason: reason
     )
+  end
+
+  def emit_expense_event(expense, status)
+    WebhookEventService.emit(
+      "expense.#{status}",
+      resource: expense,
+      payload: Webhooks::ExpenseWebhookSerializer.new(expense).as_json,
+      triggered_by: current_user
+    )
+  rescue ArgumentError
+    nil
   end
 end

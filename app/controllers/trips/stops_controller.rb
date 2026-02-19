@@ -24,6 +24,23 @@ class Trips::StopsController < ApplicationController
     stop = TripStop.find(params[:id])
     authorize stop
     stop.update!(stop_params)
+
+    if stop.waybill_returned == true
+      WebhookEventService.emit(
+        "delivery.completed",
+        resource: stop,
+        payload: Webhooks::DeliveryWebhookSerializer.new(stop).as_json,
+        triggered_by: current_user
+      )
+    elsif stop.notes_incidents.present?
+      WebhookEventService.emit(
+        "delivery.failed",
+        resource: stop,
+        payload: Webhooks::DeliveryWebhookSerializer.new(stop).as_json,
+        triggered_by: current_user
+      )
+    end
+
     render json: stop_payload(stop)
   end
 

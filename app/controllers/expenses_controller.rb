@@ -20,6 +20,13 @@ class ExpensesController < ApplicationController
       changeset: expense.attributes
     )
 
+    WebhookEventService.emit(
+      "expense.created",
+      resource: expense,
+      payload: Webhooks::ExpenseWebhookSerializer.new(expense).as_json,
+      triggered_by: current_user
+    )
+
     render json: expense_payload(expense), status: :created
   end
 

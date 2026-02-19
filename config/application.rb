@@ -40,6 +40,8 @@ module ConsmasFieldtoolApi
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, key: "_consmas_fieldtool_session"
 
     app_host = ENV.fetch("APP_HOST", "localhost")
     app_port = ENV["APP_PORT"]

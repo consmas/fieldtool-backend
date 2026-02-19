@@ -15,6 +15,8 @@ class Trips::StatusController < ApplicationController
         data: { from: previous_status, to: new_status }
       )
 
+      Trips::TripStatusChangeJob.perform_later(trip.id, previous_status, trip.status, current_user.id)
+
       render json: { id: trip.id, status: trip.status }
     else
       render json: { error: trip.errors.full_messages.presence || ["Invalid status transition"] }, status: :unprocessable_entity

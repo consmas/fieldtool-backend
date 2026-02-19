@@ -1,0 +1,29 @@
+webhook_cleanup_job:
+  class: "WebhookCleanupJob"
+  queue: low
+  cron: "*/5 * * * *"
+
+eta_batch_recalculation_job:
+  class: "EtaBatchRecalculationJob"
+  queue: low
+  cron: "*/15 * * * *"
+
+purge_expired_tokens_job:
+  class: "PurgeExpiredTokensJob"
+  queue: low
+  cron: "0 2 * * *"
+
+archive_old_location_pings_job:
+  class: "ArchiveOldLocationPingsJob"
+  queue: low
+  cron: "0 3 * * *"
+
+scheduled_report_job:
+  class: "ScheduledReportJob"
+  queue: low
+  cron: "0 6 * * 1"
+
+monthly_expense_summary_job:
+  class: "MonthlyExpenseSummaryJob"
+  queue: low
+  cron: "0 7 1 * *"

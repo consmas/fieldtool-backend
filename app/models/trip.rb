@@ -135,8 +135,6 @@ class Trip < ApplicationRecord
         completed_at: (new_status == "completed" ? Time.current : completed_at),
         cancelled_at: (new_status == "cancelled" ? Time.current : cancelled_at)
       )
-
-      Expenses::RoadFeeAutoGenerator.call!(trip: self, actor: by_user) if new_status == "en_route"
     end
   end
 

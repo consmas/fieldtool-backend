@@ -1,4 +1,42 @@
 services:
+  api:
+    container_name: consmas_fieldtool_api
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RAILS_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/consmas_fieldtool_development
+      REDIS_URL: redis://redis:6379/0
+      SIDEKIQ_REDIS_URL: redis://redis:6379/1
+    command: bin/rails server -b 0.0.0.0 -p 3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  sidekiq:
+    container_name: consmas_fieldtool_sidekiq
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RAILS_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/consmas_fieldtool_development
+      REDIS_URL: redis://redis:6379/0
+      SIDEKIQ_REDIS_URL: redis://redis:6379/1
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   db:
     image: postgres:16-alpine
     container_name: consmas_fieldtool_pg

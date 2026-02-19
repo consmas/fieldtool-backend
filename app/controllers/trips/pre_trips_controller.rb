@@ -47,6 +47,14 @@ class Trips::PreTripsController < ApplicationController
       }
     )
 
+    WebhookEventService.emit(
+      "inspection.submitted",
+      resource: pre_trip,
+      payload: Webhooks::InspectionWebhookSerializer.new(pre_trip).as_json,
+      triggered_by: current_user
+    )
+    emit_inspection_failed_event_if_needed(pre_trip)
+
     render json: pre_trip_payload(pre_trip), status: (was_new ? :created : :ok)
   end
 
@@ -82,6 +90,14 @@ class Trips::PreTripsController < ApplicationController
         accepted: pre_trip.accepted
       }
     )
+
+    WebhookEventService.emit(
+      "inspection.submitted",
+      resource: pre_trip,
+      payload: Webhooks::InspectionWebhookSerializer.new(pre_trip).as_json,
+      triggered_by: current_user
+    )
+    emit_inspection_failed_event_if_needed(pre_trip)
 
     render json: pre_trip_payload(pre_trip)
   end
@@ -220,5 +236,20 @@ class Trips::PreTripsController < ApplicationController
     trip.start_odometer_lng = pre_trip.odometer_lng
     trip.start_odometer_photo.attach(pre_trip.odometer_photo.blob) unless trip.start_odometer_photo.attached?
     trip.save!
+  end
+
+  def emit_inspection_failed_event_if_needed(pre_trip)
+    failed = pre_trip.core_checklist.to_h.any? do |_code, value|
+      status = value.is_a?(Hash) ? value["status"] : value
+      status.to_s == "fail"
+    end
+    return unless failed
+
+    WebhookEventService.emit(
+      "inspection.failed",
+      resource: pre_trip,
+      payload: Webhooks::InspectionWebhookSerializer.new(pre_trip).as_json,
+      triggered_by: current_user
+    )
   end
 end
