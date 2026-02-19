@@ -2,10 +2,12 @@ require "sidekiq/web"
 
 Rails.application.routes.draw do
   Sidekiq::Web.use Rack::Auth::Basic do |username, password|
-    user = User.find_by(email: username)
-    user&.admin? && user.valid_password?(password)
-  rescue StandardError
-    false
+    env_user = ENV["SIDEKIQ_ADMIN_USER"].to_s
+    env_pass = ENV["SIDEKIQ_ADMIN_PASSWORD"].to_s
+    next false if env_user.blank? || env_pass.blank?
+
+    ActiveSupport::SecurityUtils.secure_compare(username.to_s, env_user) &
+      ActiveSupport::SecurityUtils.secure_compare(password.to_s, env_pass)
   end
 
   mount Sidekiq::Web => "/admin/sidekiq"
