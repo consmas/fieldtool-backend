@@ -12,6 +12,9 @@ Rails.application.routes.draw do
 
   mount Sidekiq::Web => "/admin/sidekiq"
   get "/admin/sidekiq-dashboard", to: "admin/sidekiq_dashboard#show"
+  post "/admin/sidekiq-dashboard/job-action", to: "admin/sidekiq_dashboard#job_action"
+  post "/admin/sidekiq-dashboard/queue-action", to: "admin/sidekiq_dashboard#queue_action"
+  post "/admin/sidekiq-dashboard/process-action", to: "admin/sidekiq_dashboard#process_action"
 
   devise_for :users, defaults: { format: :json }, controllers: { sessions: "auth/sessions" }, skip: [:registrations]
   devise_scope :user do

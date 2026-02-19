@@ -11,6 +11,8 @@
       .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
       .btn { text-decoration: none; background: #fff; border: 1px solid #d1d5db; padding: 8px 10px; border-radius: 8px; color: #111827; font-size: 13px; }
       .btn.active { background: #111827; color: #fff; border-color: #111827; }
+      .btn.warn { border-color: #f59e0b; color: #92400e; }
+      .btn.danger { border-color: #ef4444; color: #991b1b; }
       .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 10px; }
       .card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
       .label { color: #6b7280; font-size: 12px; }
@@ -20,11 +22,17 @@
       th { background: #f3f4f6; }
       tr:last-child td { border-bottom: 0; }
       .muted { color: #6b7280; font-size: 12px; margin-top: 12px; }
+      .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      .actions form { margin: 0; }
+      .notice { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 10px; border-radius: 8px; margin: 10px 0; }
+      .alert { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; margin: 10px 0; }
       pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: #0b1020; color: #e5e7eb; border-radius: 8px; padding: 10px; }
     </style>
   </head>
   <body>
     <h1>Sidekiq Dashboard</h1>
+    <% if @notice.present? %><div class="notice"><%= @notice %></div><% end %>
+    <% if @alert.present? %><div class="alert"><%= @alert %></div><% end %>
 
     <div class="grid">
       <div class="card"><div class="label">Processed</div><div class="value"><%= @stats.processed %></div></div>
@@ -79,6 +87,17 @@
           <a class="btn <%= "active" if @selected_queue == queue_name || (@selected_queue.blank? && queue_name == @queues.keys.first) %>" href="/admin/sidekiq-dashboard?set=enqueued&queue=<%= queue_name %>&limit=<%= @limit %>"><%= queue_name %> (<%= @queues[queue_name].size %>)</a>
         <% end %>
       </div>
+      <% if @selected_queue.present? || @queues.keys.first.present? %>
+        <% active_queue = @selected_queue.presence || @queues.keys.first %>
+        <div class="toolbar">
+          <form method="post" action="/admin/sidekiq-dashboard/queue-action" onsubmit="return confirm('Clear queue <%= active_queue %>?')">
+            <input type="hidden" name="queue" value="<%= active_queue %>">
+            <input type="hidden" name="operation" value="clear">
+            <input type="hidden" name="set" value="enqueued">
+            <button class="btn danger" type="submit">Clear Queue: <%= active_queue %></button>
+          </form>
+        </div>
+      <% end %>
     <% end %>
 
     <table>
@@ -92,6 +111,7 @@
           <th>Retries</th>
           <th>Error</th>
           <th>Source</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -111,6 +131,48 @@
             <td><%= job[:retries] %></td>
             <td><%= [job[:error_class], job[:error_message]].compact.join(": ") %></td>
             <td><%= job[:source] %></td>
+            <td>
+              <div class="actions">
+                <% if job[:jid].present? %>
+                  <% if %w[retries dead].include?(@selected_set) %>
+                    <form method="post" action="/admin/sidekiq-dashboard/job-action">
+                      <input type="hidden" name="set" value="<%= @selected_set %>">
+                      <input type="hidden" name="queue" value="<%= @selected_queue %>">
+                      <input type="hidden" name="jid" value="<%= job[:jid] %>">
+                      <input type="hidden" name="operation" value="retry">
+                      <button class="btn" type="submit">Requeue</button>
+                    </form>
+                  <% end %>
+                  <% if @selected_set == "scheduled" %>
+                    <form method="post" action="/admin/sidekiq-dashboard/job-action">
+                      <input type="hidden" name="set" value="<%= @selected_set %>">
+                      <input type="hidden" name="queue" value="<%= @selected_queue %>">
+                      <input type="hidden" name="jid" value="<%= job[:jid] %>">
+                      <input type="hidden" name="operation" value="enqueue_now">
+                      <button class="btn" type="submit">Enqueue Now</button>
+                    </form>
+                  <% end %>
+                  <% if @selected_set == "retries" %>
+                    <form method="post" action="/admin/sidekiq-dashboard/job-action" onsubmit="return confirm('Move job to Dead set?')">
+                      <input type="hidden" name="set" value="<%= @selected_set %>">
+                      <input type="hidden" name="queue" value="<%= @selected_queue %>">
+                      <input type="hidden" name="jid" value="<%= job[:jid] %>">
+                      <input type="hidden" name="operation" value="kill">
+                      <button class="btn warn" type="submit">Kill</button>
+                    </form>
+                  <% end %>
+                  <% if %w[enqueued retries scheduled dead].include?(@selected_set) %>
+                    <form method="post" action="/admin/sidekiq-dashboard/job-action" onsubmit="return confirm('Delete this job?')">
+                      <input type="hidden" name="set" value="<%= @selected_set %>">
+                      <input type="hidden" name="queue" value="<%= @selected_queue %>">
+                      <input type="hidden" name="jid" value="<%= job[:jid] %>">
+                      <input type="hidden" name="operation" value="delete">
+                      <button class="btn danger" type="submit">Delete</button>
+                    </form>
+                  <% end %>
+                <% end %>
+              </div>
+            </td>
           </tr>
         <% end %>
       </tbody>
@@ -140,6 +202,69 @@
             <td><%= p["busy"] %></td>
             <td><%= p["concurrency"] %></td>
             <td><%= Array(p["queues"]).join(", ") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <h2>Worker Threads</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Process</th>
+          <th>Thread</th>
+          <th>JID</th>
+          <th>Class</th>
+          <th>Queue</th>
+          <th>Run At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @workers.each do |worker| %>
+          <tr>
+            <td><%= worker[:process_id] %></td>
+            <td><%= worker[:thread_id] %></td>
+            <td><%= worker[:jid] %></td>
+            <td><%= worker[:klass] %></td>
+            <td><%= worker[:queue] %></td>
+            <td><%= worker[:run_at] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <h2>Process Controls</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Identity</th>
+          <th>Hostname</th>
+          <th>Busy</th>
+          <th>Concurrency</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @processes.each do |p| %>
+          <tr>
+            <td><%= p["identity"] %></td>
+            <td><%= p["hostname"] %></td>
+            <td><%= p["busy"] %></td>
+            <td><%= p["concurrency"] %></td>
+            <td>
+              <div class="actions">
+                <form method="post" action="/admin/sidekiq-dashboard/process-action">
+                  <input type="hidden" name="identity" value="<%= p["identity"] %>">
+                  <input type="hidden" name="operation" value="quiet">
+                  <button class="btn warn" type="submit">Quiet</button>
+                </form>
+                <form method="post" action="/admin/sidekiq-dashboard/process-action" onsubmit="return confirm('Send stop signal to process?')">
+                  <input type="hidden" name="identity" value="<%= p["identity"] %>">
+                  <input type="hidden" name="operation" value="stop">
+                  <button class="btn danger" type="submit">Stop</button>
+                </form>
+              </div>
+            </td>
           </tr>
         <% end %>
       </tbody>
