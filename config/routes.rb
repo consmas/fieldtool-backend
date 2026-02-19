@@ -63,6 +63,36 @@ Rails.application.routes.draw do
           patch "webhooks/subscriptions/:id/reactivate", to: "webhooks#reactivate"
           get "sidekiq/dashboard", to: "sidekiq_dashboard#show"
         end
+
+        resources :work_orders, only: [:index, :show, :create, :update], controller: "/work_orders" do
+          member do
+            patch :status, to: "/work_orders#update_status"
+          end
+          collection do
+            get :summary, to: "/work_orders#summary"
+          end
+
+          resources :parts, only: [:create, :update, :destroy], controller: "/work_orders/parts"
+          resources :comments, only: [:index, :create], controller: "/work_orders/comments"
+        end
+
+        get "vehicles/:vehicle_id/work_orders", to: "/work_orders#by_vehicle"
+        get "vehicles/:vehicle_id/maintenance_schedules", to: "/maintenance_schedules#index"
+        post "vehicles/:vehicle_id/maintenance_schedules", to: "/maintenance_schedules#create"
+        patch "maintenance_schedules/:id", to: "/maintenance_schedules#update"
+        delete "maintenance_schedules/:id", to: "/maintenance_schedules#destroy"
+        get "maintenance/due", to: "/maintenance_schedules#due"
+        post "maintenance_schedules/templates", to: "/maintenance_schedules#apply_template"
+
+        resources :maintenance_vendors, only: [:index, :show, :create, :update], path: "maintenance/vendors", controller: "/maintenance/vendors"
+
+        get "vehicles/:vehicle_id/documents", to: "/vehicle_documents#index"
+        post "vehicles/:vehicle_id/documents", to: "/vehicle_documents#create"
+        patch "vehicles/:vehicle_id/documents/:id", to: "/vehicle_documents#update"
+        get "documents/expiring", to: "/vehicle_documents#expiring"
+
+        get "reports/maintenance", to: "/reports/maintenance#index"
+        get "reports/vehicles/:id/maintenance_history", to: "/reports/maintenance#vehicle_history"
       end
     end
 

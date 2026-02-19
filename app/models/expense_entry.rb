@@ -21,6 +21,7 @@ class ExpenseEntry < ApplicationRecord
   belongs_to :created_by, class_name: "User", optional: true
   belongs_to :approved_by, class_name: "User", optional: true
   belongs_to :paid_by, class_name: "User", optional: true
+  has_one :work_order, dependent: :nullify
 
   has_many :audits, class_name: "ExpenseEntryAudit", dependent: :destroy, inverse_of: :expense_entry
 

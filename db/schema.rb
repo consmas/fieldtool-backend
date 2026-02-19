@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -240,6 +240,55 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
     t.index ["trip_id"], name: "index_location_pings_on_trip_id"
   end
 
+  create_table "maintenance_schedules", force: :cascade do |t|
+    t.bigint "vehicle_id"
+    t.string "vehicle_type"
+    t.string "name", null: false
+    t.text "description"
+    t.string "schedule_type", null: false
+    t.integer "mileage_interval_km"
+    t.integer "time_interval_days"
+    t.datetime "last_performed_at"
+    t.integer "last_performed_km"
+    t.datetime "next_due_at"
+    t.integer "next_due_km"
+    t.string "priority", default: "medium", null: false
+    t.boolean "is_active", default: true, null: false
+    t.integer "notify_before_km", default: 0, null: false
+    t.integer "notify_before_days", default: 0, null: false
+    t.decimal "estimated_duration_hrs", precision: 6, scale: 2
+    t.decimal "estimated_cost", precision: 12, scale: 2
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_maintenance_schedules_on_created_by_id"
+    t.index ["is_active"], name: "index_maintenance_schedules_on_is_active"
+    t.index ["next_due_at"], name: "index_maintenance_schedules_on_next_due_at"
+    t.index ["next_due_km"], name: "index_maintenance_schedules_on_next_due_km"
+    t.index ["priority"], name: "index_maintenance_schedules_on_priority"
+    t.index ["vehicle_id"], name: "index_maintenance_schedules_on_vehicle_id"
+    t.index ["vehicle_type"], name: "index_maintenance_schedules_on_vehicle_type"
+  end
+
+  create_table "maintenance_vendors", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "contact_name"
+    t.string "phone"
+    t.string "email"
+    t.text "address"
+    t.string "city"
+    t.string "specializations", default: [], null: false, array: true
+    t.decimal "rating", precision: 3, scale: 2
+    t.boolean "is_active", default: true, null: false
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["city"], name: "index_maintenance_vendors_on_city"
+    t.index ["is_active"], name: "index_maintenance_vendors_on_is_active"
+    t.index ["specializations"], name: "index_maintenance_vendors_on_specializations", using: :gin
+  end
+
   create_table "pre_trip_inspections", force: :cascade do |t|
     t.bigint "trip_id", null: false
     t.bigint "captured_by_id", null: false
@@ -429,6 +478,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "vehicle_documents", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.string "document_type", null: false
+    t.string "document_number"
+    t.date "issued_at"
+    t.date "expires_at"
+    t.string "issuing_authority"
+    t.decimal "cost", precision: 12, scale: 2
+    t.string "status", default: "active", null: false
+    t.integer "notify_before_days", default: 30, null: false
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_type"], name: "index_vehicle_documents_on_document_type"
+    t.index ["expires_at"], name: "index_vehicle_documents_on_expires_at"
+    t.index ["status"], name: "index_vehicle_documents_on_status"
+    t.index ["vehicle_id"], name: "index_vehicle_documents_on_vehicle_id"
+  end
+
   create_table "vehicles", force: :cascade do |t|
     t.string "name", null: false
     t.integer "kind", default: 0, null: false
@@ -505,6 +574,77 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
     t.index ["user_id"], name: "index_webhook_subscriptions_on_user_id"
   end
 
+  create_table "work_order_comments", force: :cascade do |t|
+    t.bigint "work_order_id", null: false
+    t.bigint "user_id", null: false
+    t.text "comment", null: false
+    t.string "comment_type", default: "note", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["comment_type"], name: "index_work_order_comments_on_comment_type"
+    t.index ["user_id"], name: "index_work_order_comments_on_user_id"
+    t.index ["work_order_id"], name: "index_work_order_comments_on_work_order_id"
+  end
+
+  create_table "work_order_parts", force: :cascade do |t|
+    t.bigint "work_order_id", null: false
+    t.string "part_name", null: false
+    t.string "part_number"
+    t.decimal "quantity", precision: 12, scale: 3, default: "1.0", null: false
+    t.string "unit"
+    t.decimal "unit_cost", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "total_cost", precision: 12, scale: 2, default: "0.0", null: false
+    t.string "supplier"
+    t.string "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["work_order_id"], name: "index_work_order_parts_on_work_order_id"
+  end
+
+  create_table "work_orders", force: :cascade do |t|
+    t.string "work_order_number", null: false
+    t.bigint "vehicle_id", null: false
+    t.bigint "maintenance_schedule_id"
+    t.string "title", null: false
+    t.text "description"
+    t.string "work_order_type", default: "preventive", null: false
+    t.string "status", default: "draft", null: false
+    t.string "priority", default: "medium", null: false
+    t.string "assigned_to"
+    t.string "assigned_to_type"
+    t.bigint "vendor_id"
+    t.bigint "reported_by_id"
+    t.datetime "reported_at"
+    t.date "scheduled_date"
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer "odometer_at_creation"
+    t.decimal "estimated_cost", precision: 12, scale: 2
+    t.decimal "actual_cost", precision: 12, scale: 2
+    t.decimal "labor_hours", precision: 8, scale: 2
+    t.decimal "labor_cost", precision: 12, scale: 2
+    t.decimal "parts_cost", precision: 12, scale: 2
+    t.text "notes"
+    t.text "resolution_notes"
+    t.string "failure_reason"
+    t.decimal "downtime_hours", precision: 8, scale: 2
+    t.jsonb "metadata", default: {}, null: false
+    t.bigint "expense_entry_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expense_entry_id"], name: "index_work_orders_on_expense_entry_id"
+    t.index ["maintenance_schedule_id"], name: "index_work_orders_on_maintenance_schedule_id"
+    t.index ["priority"], name: "index_work_orders_on_priority"
+    t.index ["reported_by_id"], name: "index_work_orders_on_reported_by_id"
+    t.index ["scheduled_date"], name: "index_work_orders_on_scheduled_date"
+    t.index ["status"], name: "index_work_orders_on_status"
+    t.index ["vehicle_id"], name: "index_work_orders_on_vehicle_id"
+    t.index ["vendor_id"], name: "index_work_orders_on_vendor_id"
+    t.index ["work_order_number"], name: "index_work_orders_on_work_order_number", unique: true
+    t.index ["work_order_type"], name: "index_work_orders_on_work_order_type"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "chat_conversation_messages", "chat_conversations", column: "conversation_id"
@@ -529,6 +669,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
   add_foreign_key "expense_entry_audits", "users", column: "actor_id"
   add_foreign_key "location_pings", "trips"
   add_foreign_key "location_pings", "users", column: "recorded_by_id"
+  add_foreign_key "maintenance_schedules", "users", column: "created_by_id"
+  add_foreign_key "maintenance_schedules", "vehicles"
   add_foreign_key "pre_trip_inspections", "trips"
   add_foreign_key "pre_trip_inspections", "users", column: "captured_by_id"
   add_foreign_key "trip_events", "trips"
@@ -539,7 +681,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_100000) do
   add_foreign_key "trips", "users", column: "end_odometer_captured_by_id"
   add_foreign_key "trips", "users", column: "start_odometer_captured_by_id"
   add_foreign_key "trips", "vehicles"
+  add_foreign_key "vehicle_documents", "vehicles"
   add_foreign_key "webhook_deliveries", "webhook_events"
   add_foreign_key "webhook_deliveries", "webhook_subscriptions"
   add_foreign_key "webhook_subscriptions", "users"
+  add_foreign_key "work_order_comments", "users"
+  add_foreign_key "work_order_comments", "work_orders"
+  add_foreign_key "work_order_parts", "work_orders"
+  add_foreign_key "work_orders", "expense_entries"
+  add_foreign_key "work_orders", "maintenance_schedules"
+  add_foreign_key "work_orders", "maintenance_vendors", column: "vendor_id"
+  add_foreign_key "work_orders", "users", column: "reported_by_id"
+  add_foreign_key "work_orders", "vehicles"
 end

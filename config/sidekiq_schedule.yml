@@ -27,3 +27,13 @@ monthly_expense_summary_job:
   class: "MonthlyExpenseSummaryJob"
   queue: low
   cron: "0 7 1 * *"
+
+check_maintenance_due_job:
+  class: "Maintenance::CheckDueJob"
+  queue: low
+  cron: "0 * * * *"
+
+check_vehicle_document_expiry_job:
+  class: "Maintenance::CheckDocumentExpiryJob"
+  queue: low
+  cron: "0 5 * * *"
