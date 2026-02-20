@@ -19,6 +19,7 @@ class TripsController < ApplicationController
   def create
     trip = Trip.new(trip_params)
     authorize trip
+    set_audit_actor(trip, metadata: { source: "trips#create" })
     trip.save!
 
     TripEvent.create!(
@@ -44,7 +45,14 @@ class TripsController < ApplicationController
     authorize trip
     status_param = params.dig(:trip, :status)
     if status_param.present?
+      if status_param.to_s == "en_route"
+        compliance = ComplianceGateService.check_trip_readiness(trip)
+        unless compliance[:ready]
+          return render json: { error: "Trip failed compliance gate", compliance: compliance }, status: :unprocessable_entity
+        end
+      end
       previous_status = trip.status
+      set_audit_actor(trip, metadata: { source: "trips#update_status" })
       if trip.transition_to!(status_param, by_user: current_user)
         TripEvent.create!(
           trip: trip,
@@ -59,6 +67,7 @@ class TripsController < ApplicationController
       end
     end
 
+    set_audit_actor(trip, metadata: { source: "trips#update" })
     trip.update!(trip_params)
 
     TripEvent.create!(

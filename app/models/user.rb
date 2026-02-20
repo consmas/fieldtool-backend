@@ -44,8 +44,19 @@ class User < ApplicationRecord
   has_many :fuel_logs_recorded, class_name: "FuelLog", foreign_key: :recorded_by, dependent: :nullify, inverse_of: :recorder
   has_many :fuel_analysis_records_as_driver, class_name: "FuelAnalysisRecord", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
   has_many :fuel_analysis_records_investigated, class_name: "FuelAnalysisRecord", foreign_key: :investigated_by, dependent: :nullify, inverse_of: :investigator
+  has_many :audit_logs, foreign_key: :actor_id, dependent: :nullify, inverse_of: :actor
   has_one :driver_profile, dependent: :destroy
   has_many :verified_driver_documents, class_name: "DriverDocument", foreign_key: :verified_by, dependent: :nullify, inverse_of: :verifier
+  has_many :reported_incidents, class_name: "Incident", foreign_key: :reported_by, dependent: :nullify, inverse_of: :reporter
+  has_many :incidents_as_driver, class_name: "Incident", foreign_key: :driver_id, dependent: :nullify, inverse_of: :driver
+  has_many :investigated_incidents, class_name: "Incident", foreign_key: :assigned_investigator_id, dependent: :nullify, inverse_of: :assigned_investigator
+  has_many :resolved_incidents, class_name: "Incident", foreign_key: :resolved_by, dependent: :nullify, inverse_of: :resolver
+  has_many :incident_evidence_uploads, class_name: "IncidentEvidence", foreign_key: :uploaded_by, dependent: :nullify, inverse_of: :uploader
+  has_many :incident_comments, dependent: :destroy
+  has_many :insurance_claims_filed, class_name: "InsuranceClaim", foreign_key: :filed_by, dependent: :nullify, inverse_of: :filer
+  has_many :resolved_compliance_violations, class_name: "ComplianceViolation", foreign_key: :resolved_by, dependent: :nullify, inverse_of: :resolver
+  has_many :approved_compliance_violations, class_name: "ComplianceViolation", foreign_key: :waiver_approved_by, dependent: :nullify, inverse_of: :waiver_approver
+  has_many :approved_compliance_waivers, class_name: "ComplianceWaiver", foreign_key: :approved_by, dependent: :nullify, inverse_of: :approver
 
   validates :role, presence: true
 end

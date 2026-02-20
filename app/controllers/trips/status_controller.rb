@@ -6,6 +6,15 @@ class Trips::StatusController < ApplicationController
     new_status = params.require(:status)
     previous_status = trip.status
 
+    if new_status.to_s == "en_route"
+      compliance = ComplianceGateService.check_trip_readiness(trip)
+      unless compliance[:ready]
+        return render json: { error: "Trip failed compliance gate", compliance: compliance }, status: :unprocessable_entity
+      end
+    end
+
+    set_audit_actor(trip, metadata: { source: "trips/status#create" })
+
     if trip.transition_to!(new_status, by_user: current_user)
       TripEvent.create!(
         trip: trip,
@@ -16,6 +25,7 @@ class Trips::StatusController < ApplicationController
       )
 
       Trips::TripStatusChangeJob.perform_later(trip.id, previous_status, trip.status, current_user.id)
+      audit(action: "trip.status_changed", auditable: trip, changes: { status: { from: previous_status, to: trip.status } })
 
       render json: { id: trip.id, status: trip.status }
     else

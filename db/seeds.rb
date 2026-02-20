@@ -65,3 +65,98 @@ ScoringConfig.default!
 User.where(role: :driver).find_each do |user|
   DriverProfile.find_or_create_by!(user_id: user.id)
 end
+
+compliance_requirements = [
+  {
+    name: "Road Worthiness Certificate",
+    code: "VD-001",
+    category: "vehicle_documentation",
+    applies_to: "vehicle",
+    enforcement_level: "mandatory",
+    check_type: "document_expiry",
+    check_frequency: "per_trip",
+    auto_check_config: { type: "document_expiry", document_model: "VehicleDocument", document_type: "road_worthiness", warn_days_before: 30, block_trip_if_expired: true },
+    regulation_reference: "Road Traffic Act 2004, Section 9",
+    jurisdiction: "Ghana",
+    penalty_description: "Vehicle impounded, GHS 500-2000 fine",
+    priority: 1
+  },
+  {
+    name: "Vehicle Insurance",
+    code: "VD-002",
+    category: "vehicle_documentation",
+    applies_to: "vehicle",
+    enforcement_level: "mandatory",
+    check_type: "document_expiry",
+    check_frequency: "per_trip",
+    auto_check_config: { type: "document_expiry", document_model: "VehicleDocument", document_type: "insurance", warn_days_before: 30, block_trip_if_expired: true },
+    jurisdiction: "Ghana",
+    priority: 2
+  },
+  {
+    name: "Vehicle Registration",
+    code: "VD-003",
+    category: "vehicle_documentation",
+    applies_to: "vehicle",
+    enforcement_level: "mandatory",
+    check_type: "document_expiry",
+    check_frequency: "per_trip",
+    auto_check_config: { type: "document_expiry", document_model: "VehicleDocument", document_type: "registration", warn_days_before: 60, block_trip_if_expired: true },
+    jurisdiction: "Ghana",
+    priority: 3
+  },
+  {
+    name: "Valid Driving License",
+    code: "DC-001",
+    category: "driver_certification",
+    applies_to: "driver",
+    enforcement_level: "mandatory",
+    check_type: "document_expiry",
+    check_frequency: "per_trip",
+    auto_check_config: { type: "document_expiry", document_model: "DriverDocument", document_type: "driving_license", warn_days_before: 60, block_trip_if_expired: true },
+    jurisdiction: "Ghana",
+    priority: 10
+  },
+  {
+    name: "Medical Fitness Certificate",
+    code: "DC-002",
+    category: "driver_certification",
+    applies_to: "driver",
+    enforcement_level: "mandatory",
+    check_type: "document_expiry",
+    check_frequency: "annually",
+    auto_check_config: { type: "document_expiry", document_model: "DriverDocument", document_type: "medical_fitness_certificate", warn_days_before: 30, block_trip_if_expired: true },
+    jurisdiction: "Ghana",
+    priority: 11
+  },
+  {
+    name: "Axle Weight Limit",
+    code: "LC-001",
+    category: "load_compliance",
+    applies_to: "trip",
+    enforcement_level: "mandatory",
+    check_type: "threshold",
+    check_frequency: "per_trip",
+    auto_check_config: { type: "threshold", field: "weight_kg", max_value: 30_000, unit: "kg", block_trip_if_exceeded: true },
+    jurisdiction: "Ghana",
+    priority: 20
+  },
+  {
+    name: "Pre-Trip Inspection Completed",
+    code: "OP-001",
+    category: "operational",
+    applies_to: "trip",
+    enforcement_level: "mandatory",
+    check_type: "per_trip_check",
+    check_frequency: "per_trip",
+    auto_check: true,
+    auto_check_config: { type: "inspection_completed", block_trip_if_missing: true },
+    priority: 30
+  }
+]
+
+compliance_requirements.each do |attrs|
+  requirement = ComplianceRequirement.find_or_initialize_by(code: attrs[:code])
+  requirement.assign_attributes(attrs)
+  requirement.save!
+end

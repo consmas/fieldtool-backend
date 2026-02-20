@@ -1,4 +1,6 @@
 class PreTripInspection < ApplicationRecord
+  include Auditable
+
   CORE_CHECKLIST_TEMPLATE = [
     { code: "vehicle_exterior.lights_indicators_working", label: "Lights & indicators", section: "vehicle_exterior", severity_on_fail: "blocker" },
     { code: "vehicle_exterior.mirrors_windscreen_ok", label: "Mirrors & windscreen", section: "vehicle_exterior", severity_on_fail: "warning" },

@@ -1,4 +1,6 @@
 class Vehicle < ApplicationRecord
+  include Auditable
+
   enum :kind, { truck: 0, trailer: 1 }
 
   has_many :trips, dependent: :nullify
@@ -8,6 +10,7 @@ class Vehicle < ApplicationRecord
   has_many :vehicle_documents, dependent: :destroy
   has_many :fuel_logs, dependent: :destroy
   has_many :fuel_analysis_records, dependent: :destroy
+  has_many :incidents, dependent: :nullify
   has_one_attached :insurance_document
 
   validates :name, presence: true

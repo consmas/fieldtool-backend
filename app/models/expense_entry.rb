@@ -1,4 +1,6 @@
 class ExpenseEntry < ApplicationRecord
+  include Auditable
+
   CATEGORIES = {
     insurance: 0,
     registration_licensing: 1,

@@ -1,4 +1,6 @@
 class WorkOrder < ApplicationRecord
+  include Auditable
+
   WORK_ORDER_TYPES = %w[preventive corrective emergency inspection].freeze
   STATUSES = %w[draft open in_progress on_hold completed cancelled].freeze
   PRIORITIES = %w[critical high medium low].freeze

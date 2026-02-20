@@ -72,3 +72,28 @@ driver_score_notification_job:
   class: "Driver::DriverScoreNotificationJob"
   queue: default
   cron: "0 8 * * 1"
+
+compliance_scheduled_check_job:
+  class: "Compliance::ScheduledCheckJob"
+  queue: low
+  cron: "0 6 * * *"
+
+compliance_waiver_expiry_job:
+  class: "Compliance::WaiverExpiryJob"
+  queue: low
+  cron: "0 0 * * *"
+
+compliance_digest_job:
+  class: "Compliance::DigestJob"
+  queue: low
+  cron: "0 7 * * 1"
+
+incident_escalation_job:
+  class: "Incidents::EscalationJob"
+  queue: default
+  cron: "*/30 * * * *"
+
+audit_log_archive_job:
+  class: "AuditLogArchiveJob"
+  queue: low
+  cron: "0 2 1 * *"

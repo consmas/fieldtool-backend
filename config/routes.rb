@@ -173,6 +173,50 @@ Rails.application.routes.draw do
         get "reports/maintenance", to: "/reports/maintenance#index"
         get "reports/vehicles/:id/maintenance_history", to: "/reports/maintenance#vehicle_history"
         get "reports/fuel", to: "/reports/fuel#index"
+        get "reports/incidents", to: "/reports/incidents#index"
+        get "reports/compliance", to: "/reports/compliance#index"
+
+        get "audit/logs", to: "/audit/logs#index"
+        get "audit/logs/user/:user_id", to: "/audit/logs#by_user"
+        get "audit/logs/:resource_type/:resource_id", to: "/audit/logs#resource"
+        get "audit/summary", to: "/audit/logs#summary"
+        get "audit/export", to: "/audit/logs#export"
+
+        resources :incidents, only: [:index, :show, :create, :update], controller: "/incidents" do
+          member do
+            patch :status, to: "/incidents#update_status"
+          end
+          collection do
+            get :dashboard, to: "/incidents#dashboard"
+          end
+        end
+        post "incidents/:incident_id/witnesses", to: "/incidents/witnesses#create"
+        patch "incidents/:incident_id/witnesses/:witness_id", to: "/incidents/witnesses#update"
+        post "incidents/:incident_id/evidence", to: "/incidents/evidence#create"
+        get "incidents/:incident_id/evidence", to: "/incidents/evidence#index"
+        get "incidents/:incident_id/comments", to: "/incidents/comments#index"
+        post "incidents/:incident_id/comments", to: "/incidents/comments#create"
+        post "incidents/:incident_id/insurance_claims", to: "/incidents/insurance_claims#create"
+        patch "incidents/:incident_id/insurance_claims/:claim_id", to: "/incidents/insurance_claims#update"
+
+        get "compliance/requirements", to: "/compliance/requirements#index"
+        post "compliance/requirements", to: "/compliance/requirements#create"
+        patch "compliance/requirements/:id", to: "/compliance/requirements#update"
+        get "compliance/checks", to: "/compliance/checks#index"
+        post "trips/:trip_id/compliance/verify", to: "/compliance/verifications#create"
+        get "compliance/violations", to: "/compliance/violations#index"
+        get "compliance/violations/:id", to: "/compliance/violations#show"
+        patch "compliance/violations/:id", to: "/compliance/violations#update"
+        post "compliance/violations/:id/waiver", to: "/compliance/violations#waiver"
+        get "compliance/dashboard", to: "/compliance/dashboard#show"
+
+        get "compliance/vehicle/:vehicle_id", to: "/compliance/checks#vehicle"
+        get "compliance/driver/:driver_id", to: "/compliance/checks#driver"
+
+        get "me/incidents", to: "/me/incidents#index"
+        post "me/incidents", to: "/me/incidents#create"
+        post "me/incidents/:id/evidence", to: "/me/incidents#create_evidence"
+
         namespace :admin, module: "admin" do
           resources :escalation_rules, only: [:index, :create, :update]
           get "escalations/active", to: "escalations#active"

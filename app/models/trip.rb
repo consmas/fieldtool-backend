@@ -1,4 +1,6 @@
 class Trip < ApplicationRecord
+  include Auditable
+
   STATUS_FLOW = %w[draft assigned loaded en_route arrived offloaded completed].freeze
   TERMINAL_STATUSES = %w[completed cancelled].freeze
 
@@ -70,6 +72,9 @@ class Trip < ApplicationRecord
   has_one :shipment, dependent: :nullify
   has_many :fuel_logs, dependent: :nullify
   has_many :fuel_analysis_records, dependent: :nullify
+  has_many :incidents, dependent: :nullify
+  has_many :compliance_checks, dependent: :nullify
+  has_many :compliance_violations, dependent: :nullify
   has_one :pre_trip_inspection, dependent: :destroy
   has_many :trip_stops, dependent: :destroy
   has_one :chat_thread, dependent: :destroy

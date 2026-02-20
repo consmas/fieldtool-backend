@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.uuid "event_id", null: false
+    t.string "action", null: false
+    t.string "category", null: false
+    t.string "severity", default: "info", null: false
+    t.bigint "actor_id"
+    t.string "actor_type", default: "system", null: false
+    t.string "actor_role"
+    t.string "actor_ip"
+    t.string "actor_user_agent"
+    t.string "auditable_type", null: false
+    t.bigint "auditable_id", null: false
+    t.string "associated_type"
+    t.bigint "associated_id"
+    t.string "description"
+    t.jsonb "changeset", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "request_id"
+    t.string "session_id"
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["action"], name: "index_audit_logs_on_action"
+    t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
+    t.index ["associated_type", "associated_id"], name: "index_audit_logs_on_associated_type_and_associated_id"
+    t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable_type_and_auditable_id"
+    t.index ["category"], name: "index_audit_logs_on_category"
+    t.index ["changeset"], name: "index_audit_logs_on_changeset", using: :gin
+    t.index ["event_id"], name: "index_audit_logs_on_event_id", unique: true
+    t.index ["metadata"], name: "index_audit_logs_on_metadata", using: :gin
+    t.index ["occurred_at"], name: "index_audit_logs_on_occurred_at"
+    t.index ["request_id"], name: "index_audit_logs_on_request_id"
+    t.index ["severity"], name: "index_audit_logs_on_severity"
   end
 
   create_table "chat_conversation_messages", force: :cascade do |t|
@@ -143,6 +177,106 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
     t.index ["code"], name: "index_clients_on_code", unique: true
     t.index ["is_active"], name: "index_clients_on_is_active"
     t.index ["name"], name: "index_clients_on_name"
+  end
+
+  create_table "compliance_checks", force: :cascade do |t|
+    t.bigint "compliance_requirement_id", null: false
+    t.string "checkable_type", null: false
+    t.bigint "checkable_id", null: false
+    t.bigint "trip_id"
+    t.string "result", null: false
+    t.datetime "checked_at", null: false
+    t.string "checked_by"
+    t.jsonb "details", default: {}, null: false
+    t.text "notes"
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["checkable_type", "checkable_id"], name: "index_compliance_checks_on_checkable_type_and_checkable_id"
+    t.index ["checked_at"], name: "index_compliance_checks_on_checked_at"
+    t.index ["compliance_requirement_id"], name: "index_compliance_checks_on_compliance_requirement_id"
+    t.index ["result"], name: "index_compliance_checks_on_result"
+    t.index ["trip_id"], name: "index_compliance_checks_on_trip_id"
+  end
+
+  create_table "compliance_requirements", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "code", null: false
+    t.string "category", null: false
+    t.string "applies_to", null: false
+    t.text "description"
+    t.string "regulation_reference"
+    t.string "jurisdiction"
+    t.string "enforcement_level", default: "mandatory", null: false
+    t.string "check_type", null: false
+    t.string "check_frequency"
+    t.boolean "auto_check", default: true, null: false
+    t.jsonb "auto_check_config", default: {}, null: false
+    t.string "penalty_description"
+    t.boolean "is_active", default: true, null: false
+    t.integer "priority", default: 100, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["applies_to"], name: "index_compliance_requirements_on_applies_to"
+    t.index ["category"], name: "index_compliance_requirements_on_category"
+    t.index ["code"], name: "index_compliance_requirements_on_code", unique: true
+    t.index ["is_active"], name: "index_compliance_requirements_on_is_active"
+  end
+
+  create_table "compliance_violations", force: :cascade do |t|
+    t.string "violation_number", null: false
+    t.bigint "compliance_requirement_id", null: false
+    t.bigint "compliance_check_id", null: false
+    t.string "violatable_type", null: false
+    t.bigint "violatable_id", null: false
+    t.bigint "trip_id"
+    t.string "severity", null: false
+    t.string "status", default: "open", null: false
+    t.text "description"
+    t.text "required_action"
+    t.datetime "deadline"
+    t.datetime "resolved_at"
+    t.bigint "resolved_by_id"
+    t.text "resolution_notes"
+    t.text "waiver_reason"
+    t.bigint "waiver_approved_by_id"
+    t.datetime "waiver_expires_at"
+    t.decimal "financial_penalty", precision: 12, scale: 2
+    t.bigint "linked_incident_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["compliance_check_id"], name: "index_compliance_violations_on_compliance_check_id"
+    t.index ["compliance_requirement_id"], name: "index_compliance_violations_on_compliance_requirement_id"
+    t.index ["linked_incident_id"], name: "index_compliance_violations_on_linked_incident_id"
+    t.index ["resolved_by_id"], name: "index_compliance_violations_on_resolved_by_id"
+    t.index ["severity"], name: "index_compliance_violations_on_severity"
+    t.index ["status"], name: "index_compliance_violations_on_status"
+    t.index ["trip_id"], name: "index_compliance_violations_on_trip_id"
+    t.index ["violatable_type", "violatable_id"], name: "idx_on_violatable_type_violatable_id_7def21b17c"
+    t.index ["violation_number"], name: "index_compliance_violations_on_violation_number", unique: true
+    t.index ["waiver_approved_by_id"], name: "index_compliance_violations_on_waiver_approved_by_id"
+  end
+
+  create_table "compliance_waivers", force: :cascade do |t|
+    t.bigint "compliance_violation_id", null: false
+    t.string "waiver_number", null: false
+    t.text "reason", null: false
+    t.text "conditions"
+    t.text "risk_assessment"
+    t.bigint "approved_by_id"
+    t.datetime "approved_at"
+    t.datetime "effective_from"
+    t.datetime "effective_until"
+    t.string "status", default: "pending", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_id"], name: "index_compliance_waivers_on_approved_by_id"
+    t.index ["compliance_violation_id"], name: "index_compliance_waivers_on_compliance_violation_id"
+    t.index ["status"], name: "index_compliance_waivers_on_status"
+    t.index ["waiver_number"], name: "index_compliance_waivers_on_waiver_number", unique: true
   end
 
   create_table "destinations", force: :cascade do |t|
@@ -480,6 +614,131 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
     t.datetime "updated_at", null: false
     t.index ["effective_at"], name: "index_fuel_prices_on_effective_at"
     t.index ["updated_by_id"], name: "index_fuel_prices_on_updated_by_id"
+  end
+
+  create_table "incident_comments", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.bigint "user_id", null: false
+    t.text "comment", null: false
+    t.string "comment_type", default: "note", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id"], name: "index_incident_comments_on_incident_id"
+    t.index ["user_id"], name: "index_incident_comments_on_user_id"
+  end
+
+  create_table "incident_evidence", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "evidence_type", null: false
+    t.string "category", null: false
+    t.string "title"
+    t.datetime "captured_at"
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.bigint "uploaded_by_id"
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id"], name: "index_incident_evidence_on_incident_id"
+    t.index ["uploaded_by_id"], name: "index_incident_evidence_on_uploaded_by_id"
+  end
+
+  create_table "incident_witnesses", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "name", null: false
+    t.string "phone"
+    t.string "email"
+    t.string "relationship"
+    t.text "statement"
+    t.datetime "statement_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_id"], name: "index_incident_witnesses_on_incident_id"
+  end
+
+  create_table "incidents", force: :cascade do |t|
+    t.string "incident_number", null: false
+    t.bigint "trip_id"
+    t.bigint "vehicle_id", null: false
+    t.bigint "driver_id", null: false
+    t.bigint "reported_by_id", null: false
+    t.string "incident_type", null: false
+    t.string "severity", null: false
+    t.string "status", default: "reported", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.datetime "incident_date", null: false
+    t.string "incident_location"
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.string "weather_conditions"
+    t.string "road_conditions"
+    t.boolean "injuries_reported", default: false, null: false
+    t.text "injuries_description"
+    t.integer "fatalities", default: 0, null: false
+    t.boolean "third_party_involved", default: false, null: false
+    t.text "third_party_details"
+    t.string "police_report_number"
+    t.string "police_station"
+    t.decimal "estimated_damage_cost", precision: 12, scale: 2
+    t.decimal "actual_damage_cost", precision: 12, scale: 2
+    t.text "vehicle_damage_description"
+    t.text "cargo_damage_description"
+    t.decimal "cargo_damage_value", precision: 12, scale: 2
+    t.boolean "vehicle_drivable"
+    t.boolean "towing_required"
+    t.string "root_cause"
+    t.string "root_cause_category"
+    t.text "corrective_actions"
+    t.text "preventive_measures"
+    t.bigint "assigned_investigator_id"
+    t.datetime "investigation_started_at"
+    t.datetime "investigation_completed_at"
+    t.datetime "resolved_at"
+    t.bigint "resolved_by_id"
+    t.text "closure_notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assigned_investigator_id"], name: "index_incidents_on_assigned_investigator_id"
+    t.index ["driver_id"], name: "index_incidents_on_driver_id"
+    t.index ["incident_date"], name: "index_incidents_on_incident_date"
+    t.index ["incident_number"], name: "index_incidents_on_incident_number", unique: true
+    t.index ["incident_type"], name: "index_incidents_on_incident_type"
+    t.index ["reported_by_id"], name: "index_incidents_on_reported_by_id"
+    t.index ["resolved_by_id"], name: "index_incidents_on_resolved_by_id"
+    t.index ["severity"], name: "index_incidents_on_severity"
+    t.index ["status"], name: "index_incidents_on_status"
+    t.index ["trip_id"], name: "index_incidents_on_trip_id"
+    t.index ["vehicle_id"], name: "index_incidents_on_vehicle_id"
+  end
+
+  create_table "insurance_claims", force: :cascade do |t|
+    t.bigint "incident_id", null: false
+    t.string "claim_number", null: false
+    t.string "policy_number"
+    t.string "insurer_name"
+    t.string "insurer_contact"
+    t.string "claim_type", null: false
+    t.decimal "claimed_amount", precision: 12, scale: 2
+    t.decimal "approved_amount", precision: 12, scale: 2
+    t.decimal "deductible", precision: 12, scale: 2
+    t.string "status", default: "draft", null: false
+    t.datetime "filed_at"
+    t.datetime "settled_at"
+    t.text "denial_reason"
+    t.text "settlement_notes"
+    t.bigint "filed_by_id"
+    t.text "notes"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_number"], name: "index_insurance_claims_on_claim_number", unique: true
+    t.index ["filed_by_id"], name: "index_insurance_claims_on_filed_by_id"
+    t.index ["incident_id"], name: "index_insurance_claims_on_incident_id"
   end
 
   create_table "invoice_line_items", force: :cascade do |t|
@@ -1067,6 +1326,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "audit_logs", "users", column: "actor_id"
   add_foreign_key "chat_conversation_messages", "chat_conversations", column: "conversation_id"
   add_foreign_key "chat_conversation_messages", "users", column: "sender_id"
   add_foreign_key "chat_conversation_participants", "chat_conversations", column: "conversation_id"
@@ -1078,6 +1338,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
   add_foreign_key "chat_threads", "users", column: "dispatcher_id"
   add_foreign_key "chat_threads", "users", column: "driver_id"
   add_foreign_key "client_users", "clients"
+  add_foreign_key "compliance_checks", "compliance_requirements"
+  add_foreign_key "compliance_checks", "trips"
+  add_foreign_key "compliance_violations", "compliance_checks"
+  add_foreign_key "compliance_violations", "compliance_requirements"
+  add_foreign_key "compliance_violations", "incidents", column: "linked_incident_id"
+  add_foreign_key "compliance_violations", "trips"
+  add_foreign_key "compliance_violations", "users", column: "resolved_by_id"
+  add_foreign_key "compliance_violations", "users", column: "waiver_approved_by_id"
+  add_foreign_key "compliance_waivers", "compliance_violations"
+  add_foreign_key "compliance_waivers", "users", column: "approved_by_id"
   add_foreign_key "device_tokens", "users"
   add_foreign_key "driver_badges", "driver_profiles"
   add_foreign_key "driver_documents", "driver_profiles"
@@ -1106,6 +1376,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_190000) do
   add_foreign_key "fuel_logs", "users", column: "driver_id"
   add_foreign_key "fuel_logs", "users", column: "recorded_by_id"
   add_foreign_key "fuel_logs", "vehicles"
+  add_foreign_key "incident_comments", "incidents"
+  add_foreign_key "incident_comments", "users"
+  add_foreign_key "incident_evidence", "incidents"
+  add_foreign_key "incident_evidence", "users", column: "uploaded_by_id"
+  add_foreign_key "incident_witnesses", "incidents"
+  add_foreign_key "incidents", "trips"
+  add_foreign_key "incidents", "users", column: "assigned_investigator_id"
+  add_foreign_key "incidents", "users", column: "driver_id"
+  add_foreign_key "incidents", "users", column: "reported_by_id"
+  add_foreign_key "incidents", "users", column: "resolved_by_id"
+  add_foreign_key "incidents", "vehicles"
+  add_foreign_key "insurance_claims", "incidents"
+  add_foreign_key "insurance_claims", "users", column: "filed_by_id"
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoice_line_items", "shipments"
   add_foreign_key "invoices", "clients"
