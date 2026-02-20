@@ -181,6 +181,10 @@ Rails.application.routes.draw do
         get "audit/logs/:resource_type/:resource_id", to: "/audit/logs#resource"
         get "audit/summary", to: "/audit/logs#summary"
         get "audit/export", to: "/audit/logs#export"
+        # Backward-compatible aliases used by older admin/web clients
+        get "admin/audit_logs", to: "/audit/logs#index"
+        get "admin/audit_trail", to: "/audit/logs#index"
+        get "action_history", to: "/audit/logs#index"
 
         resources :incidents, only: [:index, :show, :create, :update], controller: "/incidents" do
           member do
