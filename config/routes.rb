@@ -115,12 +115,12 @@ Rails.application.routes.draw do
             get "leaderboard", to: "/drivers#leaderboard"
           end
         end
-        get "drivers/:driver_id/documents", to: "/driver_documents#index"
-        post "drivers/:driver_id/documents", to: "/driver_documents#create"
-        patch "drivers/:driver_id/documents/:id", to: "/driver_documents#update"
-        patch "drivers/:driver_id/documents/:id/verify", to: "/driver_documents#verify"
         get "drivers/documents/expiring", to: "/driver_documents#expiring"
         get "drivers/documents/compliance_summary", to: "/driver_documents#compliance_summary"
+        get "drivers/:driver_id/documents", to: "/driver_documents#index", constraints: { driver_id: /\d+/ }
+        post "drivers/:driver_id/documents", to: "/driver_documents#create", constraints: { driver_id: /\d+/ }
+        patch "drivers/:driver_id/documents/:id", to: "/driver_documents#update", constraints: { driver_id: /\d+/, id: /\d+/ }
+        patch "drivers/:driver_id/documents/:id/verify", to: "/driver_documents#verify", constraints: { driver_id: /\d+/, id: /\d+/ }
         get "me/profile", to: "/me#profile"
         get "me/documents", to: "/me#documents"
         post "me/documents", to: "/me#create_document"

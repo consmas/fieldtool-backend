@@ -1,4 +1,6 @@
 class Reports::ComplianceController < ApplicationController
+  before_action :ensure_compliance_schema!
+
   def index
     authorize ComplianceViolation, :reports?
 
@@ -23,9 +25,26 @@ class Reports::ComplianceController < ApplicationController
         driver_documents: DriverDocument.where("expires_at BETWEEN ? AND ?", Date.current, 90.days.from_now.to_date).count
       }
     }
+  rescue ActiveRecord::StatementInvalid => e
+    render json: { error: "Compliance report query failed", detail: e.message }, status: :service_unavailable
   end
 
   private
+
+  def ensure_compliance_schema!
+    required_tables = %w[
+      compliance_requirements
+      compliance_checks
+      compliance_violations
+      compliance_waivers
+      vehicle_documents
+      driver_documents
+    ]
+    missing = required_tables.reject { |table| ActiveRecord::Base.connection.data_source_exists?(table) }
+    return if missing.empty?
+
+    render json: { error: "Compliance module is not migrated yet", missing_tables: missing }, status: :service_unavailable
+  end
 
   def compliance_rate
     total = ComplianceCheck.count

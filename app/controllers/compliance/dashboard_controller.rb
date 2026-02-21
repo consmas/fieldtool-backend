@@ -1,4 +1,6 @@
 class Compliance::DashboardController < ApplicationController
+  before_action :ensure_compliance_schema!
+
   def show
     authorize ComplianceViolation, :dashboard?
 
@@ -24,9 +26,26 @@ class Compliance::DashboardController < ApplicationController
       recent_violations: violations.order(created_at: :desc).limit(10).map { |violation| { id: violation.id, violation_number: violation.violation_number, severity: violation.severity, status: violation.status, created_at: violation.created_at } },
       upcoming_expirations: upcoming_expirations
     }
+  rescue ActiveRecord::StatementInvalid => e
+    render json: { error: "Compliance dashboard query failed", detail: e.message }, status: :service_unavailable
   end
 
   private
+
+  def ensure_compliance_schema!
+    required_tables = %w[
+      compliance_requirements
+      compliance_checks
+      compliance_violations
+      compliance_waivers
+      vehicle_documents
+      driver_documents
+    ]
+    missing = required_tables.reject { |table| ActiveRecord::Base.connection.data_source_exists?(table) }
+    return if missing.empty?
+
+    render json: { error: "Compliance module is not migrated yet", missing_tables: missing }, status: :service_unavailable
+  end
 
   def fleet_compliance_rate(checks)
     total = checks.count
@@ -57,7 +76,7 @@ class Compliance::DashboardController < ApplicationController
   end
 
   def category_breakdown
-    ComplianceRequirement.group(:category).each_with_object({}) do |(category, _), out|
+    ComplianceRequirement.distinct.pluck(:category).each_with_object({}) do |category, out|
       req_ids = ComplianceRequirement.where(category: category).pluck(:id)
       total = ComplianceCheck.where(compliance_requirement_id: req_ids).count
       compliant = ComplianceCheck.where(compliance_requirement_id: req_ids, result: "compliant").count

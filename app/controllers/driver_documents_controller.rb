@@ -1,5 +1,6 @@
 class DriverDocumentsController < ApplicationController
   before_action :set_profile
+  skip_before_action :set_profile, only: [:expiring, :compliance_summary]
 
   def index
     authorize @profile, :show?, policy_class: DriverProfilePolicy

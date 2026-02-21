@@ -73,9 +73,9 @@ class Reports::MaintenanceController < ApplicationController
   private
 
   def scoped_work_orders
-    scope = WorkOrder.includes(:vehicle)
-    scope = scope.where("created_at >= ?", date_from.beginning_of_day) if date_from.present?
-    scope = scope.where("created_at <= ?", date_to.end_of_day) if date_to.present?
+    scope = WorkOrder.all
+    scope = scope.where("work_orders.created_at >= ?", date_from.beginning_of_day) if date_from.present?
+    scope = scope.where("work_orders.created_at <= ?", date_to.end_of_day) if date_to.present?
     scope
   end
 

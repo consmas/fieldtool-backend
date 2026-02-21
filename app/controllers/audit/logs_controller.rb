@@ -70,7 +70,8 @@ class Audit::LogsController < ApplicationController
 
   def filtered_scope(scope)
     scope = scope.where(category: params[:category]) if params[:category].present?
-    scope = scope.where(action: params[:action]) if params[:action].present?
+    requested_action = params[:event_action].presence || (params[:action] if params[:action].present? && params[:action] != action_name)
+    scope = scope.where(action: requested_action) if requested_action.present?
     scope = scope.where(severity: params[:severity]) if params[:severity].present?
     scope = scope.where(actor_id: params[:actor_id]) if params[:actor_id].present?
     scope = scope.where(auditable_type: params[:auditable_type].to_s.classify) if params[:auditable_type].present?
