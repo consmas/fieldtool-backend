@@ -271,6 +271,9 @@ Rails.application.routes.draw do
     resources :users, only: [:index, :show, :create, :update, :destroy]
     resources :vehicles, only: [:index, :show, :create, :update, :destroy]
     resources :trips, only: [:index, :show, :create, :update, :destroy] do
+      collection do
+        post :import, to: "trips/imports#create"
+      end
       member do
         post "status", to: "trips/status#create"
         post "odometer/start", to: "trips/odometer#start"

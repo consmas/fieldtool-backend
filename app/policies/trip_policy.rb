@@ -15,6 +15,10 @@ class TripPolicy < ApplicationPolicy
     admin_or_dispatcher_or_supervisor? || record.driver_id == user.id
   end
 
+  def destroy?
+    admin_or_dispatcher_or_supervisor?
+  end
+
   def change_status?
     admin_or_dispatcher_or_supervisor? || record.driver_id == user.id
   end
