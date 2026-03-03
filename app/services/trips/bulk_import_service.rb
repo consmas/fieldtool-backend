@@ -2,16 +2,18 @@ require "csv"
 
 module Trips
   class BulkImportService
-    REQUIRED_HEADERS = %w[driver_email driver_name].freeze
+    REQUIRED_HEADERS = %w[date trip_date].freeze
 
-    attr_reader :file, :actor, :default_trip_date, :default_status, :dry_run
+    attr_reader :file, :actor, :default_trip_date, :default_status, :dry_run, :default_driver_id, :default_vehicle_id
 
-    def initialize(file:, actor:, default_trip_date: nil, default_status: "draft", dry_run: false)
+    def initialize(file:, actor:, default_trip_date: nil, default_status: "completed", dry_run: false, default_driver_id: nil, default_vehicle_id: nil)
       @file = file
       @actor = actor
       @default_trip_date = parse_date(default_trip_date)
       @default_status = normalize_status(default_status)
       @dry_run = ActiveModel::Type::Boolean.new.cast(dry_run)
+      @default_driver_id = default_driver_id.presence&.to_i
+      @default_vehicle_id = default_vehicle_id.presence&.to_i
     end
 
     def call
@@ -28,6 +30,8 @@ module Trips
 
       rows.each_with_index do |row, index|
         row_number = index + 2
+        next if skip_row?(row)
+
         result[:total_rows] += 1
         attrs = build_trip_attrs(row)
 
@@ -90,22 +94,29 @@ module Trips
 
     def validate_headers!(headers)
       normalized = headers.compact.map { |h| normalize_header(h) }
-      return if (REQUIRED_HEADERS & normalized).any?
+      return if (REQUIRED_HEADERS & normalized).any? && normalized.include?("destination")
 
-      raise ArgumentError, "CSV must include either driver_email or driver_name column"
+      raise ArgumentError, "CSV must include at least Date/trip_date and Destination columns"
     end
 
     def build_trip_attrs(row)
       driver = resolve_driver(row)
       vehicle = resolve_vehicle(row)
+      total_fee = parse_decimal(value(row, "total_fee"))
+      base_fee = parse_decimal(value(row, "base_fee"))
+      additional_fee = parse_decimal(value(row, "additional_fee"))
+      additional_km = parse_decimal(value(row, "additional_km_travelled"))
+      fuel_cost_per_litre = parse_decimal(value(row, "fuel_cost_per_litre"))
+      stops = parse_integer(value(row, "no_of_stops"))
+      trip_date = parse_date(value(row, "date", "trip_date"))
 
       {
         reference_code: value(row, "reference_code", "trip_id", "waybill_no", "waybill_number"),
-        waybill_number: value(row, "waybill_number", "waybill_no", "reference_code"),
+        waybill_number: normalize_waybill(value(row, "waybill_number", "waybill_no", "reference_code")),
         driver_id: driver&.id,
         dispatcher_id: actor&.id,
         vehicle_id: vehicle&.id,
-        trip_date: parse_date(value(row, "trip_date", "date")) || default_trip_date || Date.current,
+        trip_date: trip_date || default_trip_date || Date.current,
         pickup_location: value(row, "pickup_location", "origin", "loading_point"),
         dropoff_location: value(row, "dropoff_location", "destination", "delivery_point"),
         destination: value(row, "destination", "dropoff_location"),
@@ -114,7 +125,10 @@ module Trips
         estimated_departure_time: parse_time(value(row, "estimated_departure_time", "departure_time")),
         estimated_arrival_time: parse_time(value(row, "estimated_arrival_time", "arrival_time")),
         status: normalize_status(value(row, "status")) || default_status,
-        truck_reg_no: value(row, "truck_reg_no", "vehicle_reg", "registration_number")
+        truck_reg_no: value(row, "truck_reg_no", "vehicle_reg", "registration_number"),
+        client_name: value(row, "customer_name", "client_name"),
+        road_expense_disbursed: total_fee || base_fee,
+        road_expense_note: build_fee_note(base_fee: base_fee, additional_fee: additional_fee, additional_km: additional_km, fuel_cost_per_litre: fuel_cost_per_litre, stops: stops)
       }.compact
     end
 
@@ -123,6 +137,7 @@ module Trips
       return User.find_by(email: email.downcase) if email.present?
 
       name = value(row, "driver_name")
+      return User.find_by(id: default_driver_id) if name.blank? && default_driver_id.present?
       return nil if name.blank?
 
       User.where(role: :driver).where("LOWER(name) = ?", name.downcase).first
@@ -133,6 +148,7 @@ module Trips
       return Vehicle.find_by(license_plate: reg) if reg.present?
 
       name = value(row, "vehicle_name", "truck_id")
+      return Vehicle.find_by(id: default_vehicle_id) if name.blank? && default_vehicle_id.present?
       return nil if name.blank?
 
       Vehicle.where("LOWER(name) = ?", name.downcase).first
@@ -191,6 +207,48 @@ module Trips
       }[status]
 
       mapped if mapped && Trip.statuses.key?(mapped)
+    end
+
+    def normalize_waybill(value)
+      waybill = value.to_s.strip
+      return nil if waybill.blank? || waybill.casecmp("n/a").zero?
+
+      waybill
+    end
+
+    def parse_integer(value)
+      return nil if value.blank?
+
+      value.to_s.gsub(/[^\d\-]/, "").to_i
+    rescue StandardError
+      nil
+    end
+
+    def build_fee_note(base_fee:, additional_fee:, additional_km:, fuel_cost_per_litre:, stops:)
+      parts = []
+      parts << "Base fee: #{base_fee.to_f.round(2)}" if base_fee.present?
+      parts << "Additional fee: #{additional_fee.to_f.round(2)}" if additional_fee.present?
+      parts << "Additional km: #{additional_km.to_f.round(2)}" if additional_km.present?
+      parts << "Fuel cost per litre: #{fuel_cost_per_litre.to_f.round(2)}" if fuel_cost_per_litre.present?
+      parts << "Stops: #{stops}" if stops.present?
+      parts.join(" | ")
+    end
+
+    def skip_row?(row)
+      values = row.to_h.values.map { |v| v.to_s.strip }
+      return true if values.all?(&:blank?)
+
+      row_date = value(row, "date", "trip_date").to_s.downcase
+      customer = value(row, "customer_name", "client_name").to_s.downcase
+      destination = value(row, "destination").to_s.downcase
+      waybill = value(row, "waybill_no", "waybill_number").to_s.downcase
+
+      return true if row_date.start_with?("total")
+      return true if customer.start_with?("total")
+      return true if customer.include?("downtime")
+      return true if destination == "n/a" && waybill == "n/a"
+
+      false
     end
 
     def failure(row_number, message)

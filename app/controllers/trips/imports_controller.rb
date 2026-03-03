@@ -19,7 +19,9 @@ class Trips::ImportsController < ApplicationController
       actor: current_user,
       default_trip_date: params[:default_trip_date],
       default_status: params[:default_status],
-      dry_run: params[:dry_run]
+      dry_run: params[:dry_run],
+      default_driver_id: params[:default_driver_id],
+      default_vehicle_id: params[:default_vehicle_id]
     ).call
 
     status = result[:failed_count].positive? ? :multi_status : :created

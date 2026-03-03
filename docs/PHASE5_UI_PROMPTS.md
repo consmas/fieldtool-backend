@@ -142,3 +142,43 @@ Use and combine:
 - Keep “submission readiness” score at top:
   - `% complete`, `missing evidence count`, `critical exceptions`.
 - Add one-click `Mark as Submitted` action that records audit log entry.
+
+## Historical Trip Backfill Prompt (Completed Trips)
+Allow admins to upload a monthly CSV of already completed trips and backfill the database in one operation.
+
+### Accepted source columns (exact spreadsheet format supported)
+- `Date`
+- `Customer Name`
+- `Waybill No.`
+- `Destination`
+- `No. of Stops`
+- `Additional km Travelled`
+- `Fuel Cost Per Litre*`
+- `Base Fee`
+- `Additional Fee*`
+- `Total Fee`
+
+### Backend endpoint
+- `POST /api/v1/trips/import` (multipart/form-data)
+
+### Import behavior
+- Create trips as `completed` by default.
+- Map fields:
+  - `Date` -> `trip_date`
+  - `Customer Name` -> `client_name`
+  - `Waybill No.` -> `waybill_number` + `reference_code`
+  - `Destination` -> `destination`/`dropoff_location`
+  - `Total Fee` (fallback `Base Fee`) -> `road_expense_disbursed`
+  - `Base Fee`, `Additional Fee`, `Additional km Travelled`, `Fuel Cost Per Litre*`, `No. of Stops` -> `road_expense_note`
+- Skip non-trip rows automatically:
+  - total rows (`TOTAL`)
+  - downtime rows (`Downtime ...`)
+  - `n/a` destination and waybill rows
+
+### Required fallback params when CSV has no driver/vehicle columns
+- `default_driver_id`
+- `default_vehicle_id`
+
+### Safety
+- Support `dry_run=true` to validate before writing.
+- Return per-row errors and created trip IDs.

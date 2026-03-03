@@ -1,0 +1,9 @@
+Date,Customer Name,Waybill No.,Destination,No. of Stops,Additional km Travelled,Fuel Cost Per Litre*,Base Fee,Additional Fee*,Total Fee
+2026-02-02,Mac Bennet Company (Returning),0006524,Kumasi,1,0.00,0.00,3750.00,0.00,3750.00
+2026-02-03,K Ofori Ltd,006536,Accra,1,0.00,0.00,3750.00,0.00,3750.00
+2026-02-04,Zons Top Construction,000346,Accra,1,0.00,0.00,3750.00,0.00,3750.00
+2026-02-09,K Ofori Ltd,006565,Amasaman (130km),1,30.00,11.60,3750.00,348.00,4098.00
+2026-02-10,CIMCO Cement,006578,Tema,1,0.00,0.00,3750.00,0.00,3750.00
+2026-02-11,K K Nico,006586,Kumasi almost Obuasi,1,0.00,0.00,12500.00,0.00,12500.00
+2026-02-23,Gold Coast Development,006651,Accra (110km),1,10.00,11.60,3750.00,116.00,3866.00
+2026-02-25,Sethi Ltd (Actual Travel),006657,Kumasi,1,0.00,0.00,10500.00,0.00,10500.00

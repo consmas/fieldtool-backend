@@ -185,6 +185,11 @@ Rails.application.routes.draw do
         get "admin/audit_logs", to: "/audit/logs#index"
         get "admin/audit_trail", to: "/audit/logs#index"
         get "action_history", to: "/audit/logs#index"
+        # Backward-compatible aliases for clients that prefix trips with /api/v1
+        post "trips/import", to: "/trips/imports#create"
+        post "trips/:id/status", to: "/trips/status#create"
+        post "trips/:id/odometer/start", to: "/trips/odometer#start"
+        post "trips/:id/odometer/end", to: "/trips/odometer#end"
 
         resources :incidents, only: [:index, :show, :create, :update], controller: "/incidents" do
           member do
