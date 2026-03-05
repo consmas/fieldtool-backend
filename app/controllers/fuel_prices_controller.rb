@@ -13,6 +13,15 @@ class FuelPricesController < ApplicationController
     render json: fuel_price_payload(price), status: :created
   end
 
+  def update
+    price = FuelPrice.find(params[:id])
+    authorize price
+    price.assign_attributes(fuel_price_params)
+    price.updated_by = current_user
+    price.save!
+    render json: fuel_price_payload(price)
+  end
+
   private
 
   def fuel_price_params

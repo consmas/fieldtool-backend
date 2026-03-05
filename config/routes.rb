@@ -105,6 +105,7 @@ Rails.application.routes.draw do
         put "notifications/preferences/quiet_hours", to: "/notification_preferences#quiet_hours"
         post "devices", to: "/devices#create"
         delete "devices/:token", to: "/devices#destroy"
+        resources :fuel_prices, only: [:index, :create, :update], controller: "/fuel_prices"
         resources :drivers, only: [:index, :show, :update], controller: "/drivers" do
           member do
             get "scores", to: "/driver_scores#index"
