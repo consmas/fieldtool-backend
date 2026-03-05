@@ -140,6 +140,13 @@ Rails.application.routes.draw do
         patch "fuel/analysis/:id/investigate", to: "/fuel/analysis#investigate"
         get "fuel/analysis/vehicle/:vehicle_id", to: "/fuel/analysis#vehicle"
         get "fuel/analysis/driver/:driver_id", to: "/fuel/analysis#driver"
+        get "fuel/deposits", to: "/fuel/deposits#index"
+        post "fuel/deposits", to: "/fuel/deposits#create"
+        get "fuel/deposits/:id", to: "/fuel/deposits#show"
+        patch "fuel/deposits/:id", to: "/fuel/deposits#update"
+        post "fuel/deposits/:id/confirm", to: "/fuel/deposits#confirm"
+        get "fuel/omc_balances", to: "/fuel/deposits#balances"
+        get "fuel/omc_ledger", to: "/fuel/deposits#ledger"
 
         resources :work_orders, only: [:index, :show, :create, :update], controller: "/work_orders" do
           member do

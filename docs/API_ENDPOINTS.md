@@ -82,6 +82,37 @@ All requests (except login) require:
 }
 ```
 
+### Fuel Deposits (OMC Wallet)
+- `GET /api/v1/fuel/deposits`
+- `POST /api/v1/fuel/deposits` (multipart supported with `receipt`)
+- `GET /api/v1/fuel/deposits/:id`
+- `PATCH /api/v1/fuel/deposits/:id` (multipart supported with `receipt`)
+- `POST /api/v1/fuel/deposits/:id/confirm`
+- `GET /api/v1/fuel/omc_balances`
+- `GET /api/v1/fuel/omc_ledger`
+
+Fuel deposit payload fields:
+- `fuel_deposit[omc_name]` (`westport|top_oil|other`)
+- `fuel_deposit[amount]`
+- `fuel_deposit[currency]` (default `GHS`)
+- `fuel_deposit[deposit_date]`
+- `fuel_deposit[payment_method]` (`bank_transfer|momo|cash|cheque`)
+- `fuel_deposit[reference_no]`
+- `fuel_deposit[status]` (`draft|confirmed|cancelled`)
+- `fuel_deposit[notes]`
+- `receipt` (image/pdf)
+
+### Fuel Logs (OMC Deduction Support)
+When creating fuel logs via:
+- `POST /api/v1/vehicles/:vehicle_id/fuel_logs`
+- `POST /api/v1/trips/:trip_id/fuel_logs`
+
+You can now pass:
+- `fuel_log[funding_source]` (`cash|fuel_card|omc_deposit`)
+- `fuel_log[omc_name]` (`westport|top_oil|other`)
+
+If `funding_source=omc_deposit`, backend enforces available OMC balance and automatically deducts `total_cost`.
+
 ### Pre‑Trip Inspection
 - `GET /trips/:id/pre_trip`
 - `POST /trips/:id/pre_trip` (multipart, upsert)

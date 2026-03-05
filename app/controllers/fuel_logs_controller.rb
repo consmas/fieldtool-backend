@@ -1,4 +1,8 @@
 class FuelLogsController < ApplicationController
+  rescue_from Fuel::OmcWalletService::InsufficientBalanceError do |error|
+    render json: { error: [error.message] }, status: :unprocessable_entity
+  end
+
   def index
     authorize FuelLog, :index?
 
@@ -21,7 +25,10 @@ class FuelLogsController < ApplicationController
     fuel_log = vehicle.fuel_logs.new(fuel_log_params)
     fuel_log.driver_id ||= params[:driver_id]
     fuel_log.recorded_by ||= current_user.id
-    fuel_log.save!
+    FuelLog.transaction do
+      fuel_log.save!
+      Fuel::OmcWalletService.debit_for_fuel_log!(fuel_log: fuel_log, actor: current_user)
+    end
 
     render json: payload(fuel_log), status: :created
   end
@@ -35,7 +42,10 @@ class FuelLogsController < ApplicationController
     fuel_log.vehicle_id ||= trip.vehicle_id
     fuel_log.driver_id ||= trip.driver_id
     fuel_log.recorded_by ||= current_user.id
-    fuel_log.save!
+    FuelLog.transaction do
+      fuel_log.save!
+      Fuel::OmcWalletService.debit_for_fuel_log!(fuel_log: fuel_log, actor: current_user)
+    end
 
     render json: payload(fuel_log), status: :created
   end
@@ -59,6 +69,8 @@ class FuelLogsController < ApplicationController
       :fuel_card_reference,
       :receipt_number,
       :is_full_tank,
+      :funding_source,
+      :omc_name,
       :fueled_at,
       :recorded_by,
       :notes,
@@ -93,6 +105,9 @@ class FuelLogsController < ApplicationController
       fuel_card_reference: row.fuel_card_reference,
       receipt_number: row.receipt_number,
       is_full_tank: row.is_full_tank,
+      funding_source: row.funding_source,
+      omc_name: row.omc_name,
+      deducted_from_omc: row.deducted_from_omc,
       fueled_at: row.fueled_at,
       recorded_by: row.recorded_by,
       notes: row.notes,
