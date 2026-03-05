@@ -5,6 +5,12 @@ class FuelPricesController < ApplicationController
     render json: prices.map { |price| fuel_price_payload(price) }
   end
 
+  def show
+    price = FuelPrice.find(params[:id])
+    authorize price
+    render json: fuel_price_payload(price)
+  end
+
   def create
     price = FuelPrice.new(fuel_price_params)
     authorize price

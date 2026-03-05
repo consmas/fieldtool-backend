@@ -33,7 +33,7 @@ Rails.application.routes.draw do
         post "calculate"
       end
     end
-    resources :fuel_prices, only: [:index, :create]
+    resources :fuel_prices, only: [:index, :show, :create, :update]
     get "maintenance/my_vehicle", to: "maintenance/driver#my_vehicle"
     get "maintenance/snapshot", to: "maintenance/driver#snapshot"
     get "drivers/me/maintenance", to: "maintenance/driver#driver_maintenance"
@@ -105,7 +105,7 @@ Rails.application.routes.draw do
         put "notifications/preferences/quiet_hours", to: "/notification_preferences#quiet_hours"
         post "devices", to: "/devices#create"
         delete "devices/:token", to: "/devices#destroy"
-        resources :fuel_prices, only: [:index, :create, :update], controller: "/fuel_prices"
+        resources :fuel_prices, only: [:index, :show, :create, :update], controller: "/fuel_prices"
         resources :drivers, only: [:index, :show, :update], controller: "/drivers" do
           member do
             get "scores", to: "/driver_scores#index"

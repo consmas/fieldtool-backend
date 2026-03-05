@@ -3,6 +3,10 @@ class FuelPricePolicy < ApplicationPolicy
     user.present?
   end
 
+  def show?
+    user.present?
+  end
+
   def create?
     admin_or_dispatcher_or_supervisor?
   end
