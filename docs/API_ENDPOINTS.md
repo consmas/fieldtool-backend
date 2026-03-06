@@ -113,6 +113,18 @@ You can now pass:
 
 If `funding_source=omc_deposit`, backend enforces available OMC balance and automatically deducts `total_cost`.
 
+### Fuel Price Recalculation
+When a fuel price is created or updated, backend automatically enqueues recalculation of fuel expenses for that effective period.
+
+Manual trigger endpoint:
+- `POST /expenses/automation/fuel/recalculate`
+  - Optional payload:
+    - `trip_ids: []`
+    - `price_per_liter`
+    - `date_from`
+    - `date_to`
+    - `target_statuses` (e.g. `["approved","pending"]`)
+
 ### Pre‑Trip Inspection
 - `GET /trips/:id/pre_trip`
 - `POST /trips/:id/pre_trip` (multipart, upsert)

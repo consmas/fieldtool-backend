@@ -16,6 +16,7 @@ class FuelPricesController < ApplicationController
     authorize price
     price.updated_by = current_user
     price.save!
+    enqueue_fuel_recalculation(price)
     render json: fuel_price_payload(price), status: :created
   end
 
@@ -25,6 +26,7 @@ class FuelPricesController < ApplicationController
     price.assign_attributes(fuel_price_params)
     price.updated_by = current_user
     price.save!
+    enqueue_fuel_recalculation(price)
     render json: fuel_price_payload(price)
   end
 
@@ -41,5 +43,18 @@ class FuelPricesController < ApplicationController
       effective_at: price.effective_at,
       updated_by_id: price.updated_by_id
     }
+  end
+
+  def enqueue_fuel_recalculation(price)
+    next_price = FuelPrice.where("effective_at > ?", price.effective_at).order(effective_at: :asc).first
+    date_from = price.effective_at
+    date_to = next_price ? (next_price.effective_at - 1.second) : Time.current.end_of_year
+
+    Expenses::RecalculateFuelExpenseJob.perform_later(
+      actor_id: current_user.id,
+      date_from: date_from.iso8601,
+      date_to: date_to.iso8601,
+      target_statuses: %w[approved pending]
+    )
   end
 end

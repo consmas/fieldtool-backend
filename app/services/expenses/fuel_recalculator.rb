@@ -1,11 +1,13 @@
 module Expenses
   class FuelRecalculator
     RULE_KEY = "fuel_mapping_v1".freeze
+    DEFAULT_TARGET_STATUSES = %w[pending approved].freeze
 
     Result = Struct.new(:processed, :updated, :created, :skipped, :errors, keyword_init: true)
 
-    def self.call(scope:, actor:, price_per_liter_override: nil)
+    def self.call(scope:, actor:, price_per_liter_override: nil, target_statuses: DEFAULT_TARGET_STATUSES)
       result = Result.new(processed: 0, updated: 0, created: 0, skipped: 0, errors: [])
+      statuses = Array(target_statuses).map(&:to_s).presence || DEFAULT_TARGET_STATUSES
 
       scope.find_each do |trip|
         result.processed += 1
@@ -15,7 +17,7 @@ module Expenses
           next
         end
 
-        price, source = resolve_price(price_per_liter_override)
+        price, source = resolve_price(price_per_liter_override, trip)
         if price.blank?
           result.skipped += 1
           next
@@ -23,11 +25,12 @@ module Expenses
 
         amount = liters.to_d * price.to_d
         expense = ExpenseEntry.active.find_or_initialize_by(trip_id: trip.id, category: :fuel, auto_rule_key: RULE_KEY)
-        if expense.persisted? && expense.status == "paid"
+        if expense.persisted? && !statuses.include?(expense.status)
           result.skipped += 1
           next
         end
 
+        previous_amount = expense.amount.to_d
         expense.assign_attributes(
           vehicle: trip.vehicle,
           driver: trip.driver,
@@ -55,7 +58,10 @@ module Expenses
           action: was_new ? "fuel_recalculation_created" : "fuel_recalculation_updated",
           from_status: was_new ? nil : old_status,
           to_status: expense.status,
-          metadata: expense.metadata
+          metadata: expense.metadata.merge(
+            previous_amount: previous_amount,
+            recalculated_amount: expense.amount.to_d
+          )
         )
 
         was_new ? result.created += 1 : result.updated += 1
@@ -66,13 +72,15 @@ module Expenses
       result
     end
 
-    def self.resolve_price(price_override)
+    def self.resolve_price(price_override, trip)
       return [price_override.to_d, "manual_override"] if price_override.present?
 
-      latest = FuelPrice.order(effective_at: :desc).first
-      return [nil, nil] if latest.nil?
+      base_time = trip.trip_date.present? ? trip.trip_date.to_time.in_time_zone.end_of_day : Time.current
+      price = FuelPrice.where("effective_at <= ?", base_time).order(effective_at: :desc).first
+      price ||= FuelPrice.order(effective_at: :desc).first
+      return [nil, nil] if price.nil?
 
-      [latest.price_per_liter.to_d, "latest_fuel_price"]
+      [price.price_per_liter.to_d, "effective_fuel_price"]
     end
   end
 end
