@@ -179,6 +179,11 @@ Rails.application.routes.draw do
         patch "vehicles/:vehicle_id/documents/:id", to: "/vehicle_documents#update"
         get "documents/expiring", to: "/vehicle_documents#expiring"
 
+        get "reports/overview", to: "/reports/dashboard#overview"
+        get "reports/trips", to: "/reports/dashboard#trips"
+        get "reports/expenses", to: "/reports/dashboard#expenses"
+        get "reports/drivers", to: "/reports/dashboard#drivers"
+        get "reports/vehicles", to: "/reports/dashboard#vehicles"
         get "reports/maintenance", to: "/reports/maintenance#index"
         get "reports/vehicles/:id/maintenance_history", to: "/reports/maintenance#vehicle_history"
         get "reports/fuel", to: "/reports/fuel#index"
