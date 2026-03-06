@@ -27,6 +27,10 @@ class FuelDepositPolicy < ApplicationPolicy
     admin_or_dispatcher_or_supervisor_or_finance?
   end
 
+  def reconcile?
+    finance_or_admin?
+  end
+
   class Scope < Scope
     def resolve
       return scope.all if user&.admin? || user&.finance? || user&.dispatcher? || user&.supervisor?

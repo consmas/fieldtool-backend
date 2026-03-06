@@ -88,6 +88,7 @@ All requests (except login) require:
 - `GET /api/v1/fuel/deposits/:id`
 - `PATCH /api/v1/fuel/deposits/:id` (multipart supported with `receipt`)
 - `POST /api/v1/fuel/deposits/:id/confirm`
+- `POST /api/v1/fuel/deposits/reconcile`
 - `GET /api/v1/fuel/omc_balances`
 - `GET /api/v1/fuel/omc_ledger`
 
@@ -112,6 +113,12 @@ You can now pass:
 - `fuel_log[omc_name]` (`westport|top_oil|other`)
 
 If `funding_source=omc_deposit`, backend enforces available OMC balance and automatically deducts `total_cost`.
+
+Fuel deposit reconciliation payload:
+- `reconcile[omc_name]` (or `omc_name`)
+- `reconcile[month]` in `YYYY-MM` (or `month`)
+- optional `reconcile[dry_run]` boolean (default false)
+- optional `reconcile[target_statuses]` array (default `["approved","paid"]`)
 
 ### Fuel Price Recalculation
 When a fuel price is created or updated, backend automatically enqueues recalculation of fuel expenses for that effective period.

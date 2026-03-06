@@ -107,6 +107,107 @@ class Fuel::DepositsController < ApplicationController
     }
   end
 
+  def reconcile
+    authorize FuelDeposit, :reconcile?
+
+    omc_name = params[:omc_name].presence || params.dig(:reconcile, :omc_name).presence
+    month_value = params[:month].presence || params.dig(:reconcile, :month).presence
+    statuses = Array(params[:target_statuses] || params.dig(:reconcile, :target_statuses)).map(&:to_s).presence || %w[approved paid]
+    dry_run = ActiveModel::Type::Boolean.new.cast(params[:dry_run].presence || params.dig(:reconcile, :dry_run))
+
+    return render json: { error: ["omc_name is required"] }, status: :unprocessable_entity if omc_name.blank?
+    return render json: { error: ["month is required in YYYY-MM format"] }, status: :unprocessable_entity if month_value.blank?
+
+    period_start = parse_month(month_value)
+    return render json: { error: ["month must be in YYYY-MM format"] }, status: :unprocessable_entity if period_start.nil?
+
+    period_end = period_start.end_of_month.end_of_day
+    balance = FuelOmcBalance.find_or_create_by!(omc_name: omc_name) { |row| row.currency = "GHS"; row.balance = 0 }
+    opening_balance = balance.balance.to_d
+
+    scope = ExpenseEntry.active
+      .where(category: ExpenseEntry.categories[:fuel])
+      .where(status: statuses.map { |s| ExpenseEntry.statuses[s] }.compact)
+      .where(expense_date: period_start..period_end)
+      .order(:expense_date, :id)
+
+    stats = {
+      total: 0,
+      eligible: 0,
+      already_ledgered: 0,
+      debited: 0,
+      insufficient: 0
+    }
+    preview_rows = []
+    current_balance = opening_balance
+
+    work = lambda do
+      scope.find_each do |expense|
+        stats[:total] += 1
+        if FuelOmcLedgerEntry.exists?(reference_type: "ExpenseEntry", reference_id: expense.id, entry_type: "debit")
+          stats[:already_ledgered] += 1
+          next
+        end
+
+        amount = expense.amount.to_d
+        stats[:eligible] += 1
+        if current_balance < amount
+          stats[:insufficient] += 1
+          preview_rows << { expense_id: expense.id, amount: amount.to_s("F"), status: "insufficient_balance" } if preview_rows.size < 100
+          next
+        end
+
+        before = current_balance
+        after = before - amount
+
+        unless dry_run
+          FuelOmcLedgerEntry.create!(
+            fuel_omc_balance: balance,
+            entry_type: "debit",
+            amount: amount,
+            balance_before: before,
+            balance_after: after,
+            reference_type: "ExpenseEntry",
+            reference_id: expense.id,
+            actor: current_user,
+            note: "Fuel expense reconciliation debit",
+            metadata: {
+              omc_name: omc_name,
+              month: period_start.strftime("%Y-%m"),
+              expense_entry_id: expense.id
+            }
+          )
+        end
+
+        preview_rows << { expense_id: expense.id, amount: amount.to_s("F"), status: "debited" } if preview_rows.size < 100
+        current_balance = after
+        stats[:debited] += 1
+      end
+    end
+
+    if dry_run
+      work.call
+    else
+      FuelOmcBalance.transaction do
+        balance.lock!
+        current_balance = balance.balance.to_d
+        work.call
+        balance.update!(balance: current_balance)
+      end
+    end
+
+    render json: {
+      mode: dry_run ? "dry_run" : "apply",
+      omc_name: omc_name,
+      month: period_start.strftime("%Y-%m"),
+      statuses: statuses,
+      opening_balance: opening_balance.to_s("F"),
+      closing_balance: current_balance.to_s("F"),
+      stats: stats,
+      preview: preview_rows
+    }
+  end
+
   private
 
   def deposit_params
@@ -174,6 +275,12 @@ class Fuel::DepositsController < ApplicationController
     return nil if value.blank?
 
     Time.zone.parse(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def parse_month(value)
+    Time.zone.strptime(value.to_s, "%Y-%m").beginning_of_month
   rescue ArgumentError, TypeError
     nil
   end
