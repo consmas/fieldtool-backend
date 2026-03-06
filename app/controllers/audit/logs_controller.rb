@@ -1,6 +1,30 @@
 require "csv"
 
 class Audit::LogsController < ApplicationController
+  def create
+    authorize AuditLog, :create?
+
+    action_name = submitted_action_name
+    action_name = "system.bulk_operation" unless AuditActionRegistry.fetch(action_name)
+
+    metadata = submitted_metadata.merge(
+      submission: submitted_submission_payload,
+      source: submitted_source
+    ).compact
+
+    AuditService.record(
+      action: action_name,
+      auditable: current_user,
+      actor: current_user,
+      description: submitted_description,
+      severity: submitted_severity,
+      metadata: metadata,
+      request_context: @audit_request_context
+    )
+
+    render json: { ok: true, action: action_name }, status: :created
+  end
+
   def index
     authorize AuditLog, :index?
 
@@ -129,5 +153,53 @@ class Audit::LogsController < ApplicationController
     counts.map do |actor_id, action_count|
       { user_id: actor_id, name: users[actor_id]&.name, action_count: action_count }
     end
+  end
+
+  def submitted_payload
+    return {} unless params.respond_to?(:to_unsafe_h)
+
+    params.to_unsafe_h
+          .except("controller", "action", "format")
+          .deep_dup
+  end
+
+  def submitted_action_name
+    submitted_payload["event_action"].presence ||
+      submitted_payload["action_name"].presence ||
+      submitted_payload.dig("audit", "event_action").presence ||
+      submitted_payload.dig("audit", "action_name").presence ||
+      submitted_payload.dig("audit", "action").presence ||
+      "system.bulk_operation"
+  end
+
+  def submitted_description
+    submitted_payload["description"].presence ||
+      submitted_payload.dig("audit", "description").presence ||
+      "Monitoring workbook submitted"
+  end
+
+  def submitted_severity
+    submitted_payload["severity"].presence ||
+      submitted_payload.dig("audit", "severity").presence
+  end
+
+  def submitted_source
+    submitted_payload["source"].presence ||
+      submitted_payload.dig("audit", "source").presence ||
+      "monitoring_submission"
+  end
+
+  def submitted_submission_payload
+    keys = %w[month year period reporting_month reporting_year submitted_at]
+    data = submitted_payload.slice(*keys)
+    nested = submitted_payload["submission"].is_a?(Hash) ? submitted_payload["submission"] : {}
+    data.merge(nested.slice(*keys)).compact.presence
+  end
+
+  def submitted_metadata
+    direct = submitted_payload["metadata"].is_a?(Hash) ? submitted_payload["metadata"] : {}
+    nested = submitted_payload.dig("audit", "metadata")
+    nested = nested.is_a?(Hash) ? nested : {}
+    direct.merge(nested).compact
   end
 end

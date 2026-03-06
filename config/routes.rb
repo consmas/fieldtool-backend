@@ -191,14 +191,17 @@ Rails.application.routes.draw do
         get "reports/compliance", to: "/reports/compliance#index"
 
         get "audit/logs", to: "/audit/logs#index"
+        post "audit/logs", to: "/audit/logs#create"
         get "audit/logs/user/:user_id", to: "/audit/logs#by_user"
         get "audit/logs/:resource_type/:resource_id", to: "/audit/logs#resource"
         get "audit/summary", to: "/audit/logs#summary"
         get "audit/export", to: "/audit/logs#export"
         # Backward-compatible aliases used by older admin/web clients
         get "admin/audit_logs", to: "/audit/logs#index"
+        post "admin/audit_logs", to: "/audit/logs#create"
         get "admin/audit_trail", to: "/audit/logs#index"
         get "action_history", to: "/audit/logs#index"
+        post "action_history", to: "/audit/logs#create"
         # Backward-compatible aliases for clients that prefix trips with /api/v1
         post "trips/import", to: "/trips/imports#create"
         post "trips/:id/status", to: "/trips/status#create"
