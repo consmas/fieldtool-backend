@@ -35,7 +35,7 @@ module Expenses
           vehicle: trip.vehicle,
           driver: trip.driver,
           amount: amount.round(2),
-          expense_date: Time.current,
+          expense_date: trip.trip_date || expense.expense_date || Time.current.to_date,
           currency: "GHS",
           status: expense.status.presence || :pending,
           description: "Fuel expense mapped from trip fuel usage",
