@@ -23,6 +23,8 @@ class Reports::WorkbooksController < ApplicationController
 
     render json: exporter.monitoring_workbook_payload.merge(export_links: export_links("monitoring_workbook"))
   rescue StandardError => e
+    Rails.logger.error("[WorkbookError] monitoring_workbook month=#{params[:month]} error=#{e.class}: #{e.message}")
+    Rails.logger.error(e.backtrace.first(20).join("\n")) if e.backtrace.present?
     render json: { error: "Monitoring workbook generation failed", detail: e.message }, status: :internal_server_error
   end
 
@@ -41,6 +43,8 @@ class Reports::WorkbooksController < ApplicationController
 
     render json: exporter.reporting_regime_payload.merge(export_links: export_links("monitoring_regime"))
   rescue StandardError => e
+    Rails.logger.error("[WorkbookError] monitoring_regime month=#{params[:month]} error=#{e.class}: #{e.message}")
+    Rails.logger.error(e.backtrace.first(20).join("\n")) if e.backtrace.present?
     render json: { error: "Monitoring regime generation failed", detail: e.message }, status: :internal_server_error
   end
 
@@ -59,6 +63,8 @@ class Reports::WorkbooksController < ApplicationController
 
     render json: exporter.budget_workbook_payload.merge(export_links: export_links("budget_workbook"))
   rescue StandardError => e
+    Rails.logger.error("[WorkbookError] budget_workbook month=#{params[:month]} error=#{e.class}: #{e.message}")
+    Rails.logger.error(e.backtrace.first(20).join("\n")) if e.backtrace.present?
     render json: { error: "Budget workbook generation failed", detail: e.message }, status: :internal_server_error
   end
 
