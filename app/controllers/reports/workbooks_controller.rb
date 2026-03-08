@@ -22,6 +22,8 @@ class Reports::WorkbooksController < ApplicationController
     end
 
     render json: exporter.monitoring_workbook_payload.merge(export_links: export_links("monitoring_workbook"))
+  rescue StandardError => e
+    render json: { error: "Monitoring workbook generation failed", detail: e.message }, status: :internal_server_error
   end
 
   def monitoring_regime
@@ -38,6 +40,8 @@ class Reports::WorkbooksController < ApplicationController
     end
 
     render json: exporter.reporting_regime_payload.merge(export_links: export_links("monitoring_regime"))
+  rescue StandardError => e
+    render json: { error: "Monitoring regime generation failed", detail: e.message }, status: :internal_server_error
   end
 
   def budget_workbook
@@ -54,6 +58,8 @@ class Reports::WorkbooksController < ApplicationController
     end
 
     render json: exporter.budget_workbook_payload.merge(export_links: export_links("budget_workbook"))
+  rescue StandardError => e
+    render json: { error: "Budget workbook generation failed", detail: e.message }, status: :internal_server_error
   end
 
   private

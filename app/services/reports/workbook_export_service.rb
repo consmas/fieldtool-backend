@@ -511,7 +511,9 @@ module Reports
       on_time_breaches = trips.where(status: :completed).where("completed_at IS NOT NULL AND scheduled_dropoff_at IS NOT NULL AND completed_at > scheduled_dropoff_at").order(:completed_at)
       failed_deliveries = trips.where(status: :cancelled).order(:updated_at)
       complaint_breaches = incidents.where("incident_type ILIKE ?", "%complaint%").order(:incident_date)
-      response_breaches = incidents.where("metadata->>'response_time_hours' IS NOT NULL AND CAST(metadata->>'response_time_hours' AS DECIMAL) > 2")
+      response_breaches = incidents.where(
+        "(metadata->>'response_time_hours') ~ '^[0-9]+(\\.[0-9]+)?$' AND CAST(metadata->>'response_time_hours' AS DECIMAL) > 2"
+      )
       vehicle_condition_breaches = trips.where(vehicle_condition_post_trip: Trip.vehicle_condition_post_trips[:damaged]).order(:updated_at)
 
       [[
