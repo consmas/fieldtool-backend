@@ -434,6 +434,15 @@ Webhook admin:
   - Driver-level performance and expense totals.
 - `GET /reports/vehicles`
   - Vehicle-level trips, distance, fuel liters, and repairs/maintenance spend.
+- `GET /reports/monitoring_workbook`
+  - Query: `month=YYYY-MM`
+  - Export: add `export=xlsx` (multi-sheet workbook) or `export=csv` (single-sheet CSV).
+- `GET /reports/monitoring_regime`
+  - Query: `month=YYYY-MM`
+  - Export: add `export=xlsx`.
+- `GET /reports/budget_workbook`
+  - Query: `month=YYYY-MM`
+  - Export: add `export=xlsx`.
 
 Common query params (where relevant):
 - `date_from`, `date_to`

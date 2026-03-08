@@ -189,6 +189,9 @@ Rails.application.routes.draw do
         get "reports/fuel", to: "/reports/fuel#index"
         get "reports/incidents", to: "/reports/incidents#index"
         get "reports/compliance", to: "/reports/compliance#index"
+        get "reports/monitoring_workbook", to: "/reports/workbooks#monitoring_workbook"
+        get "reports/monitoring_regime", to: "/reports/workbooks#monitoring_regime"
+        get "reports/budget_workbook", to: "/reports/workbooks#budget_workbook"
 
         get "audit/logs", to: "/audit/logs#index"
         post "audit/logs", to: "/audit/logs#create"
