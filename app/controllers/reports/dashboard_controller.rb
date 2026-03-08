@@ -147,10 +147,10 @@ class Reports::DashboardController < ApplicationController
     scope = scope.where(vehicle_id: params[:vehicle_id]) if params[:vehicle_id].present?
 
     if date_from.present?
-      scope = scope.where("trip_date >= ? OR (trip_date IS NULL AND created_at >= ?)", date_from.to_date, date_from)
+      scope = scope.where("trips.trip_date >= ? OR (trips.trip_date IS NULL AND trips.created_at >= ?)", date_from.to_date, date_from)
     end
     if date_to.present?
-      scope = scope.where("trip_date <= ? OR (trip_date IS NULL AND created_at <= ?)", date_to.to_date, date_to.end_of_day)
+      scope = scope.where("trips.trip_date <= ? OR (trips.trip_date IS NULL AND trips.created_at <= ?)", date_to.to_date, date_to.end_of_day)
     end
 
     scope

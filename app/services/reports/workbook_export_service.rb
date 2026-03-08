@@ -171,7 +171,7 @@ module Reports
 
     def scoped_trips
       Trip.includes(:driver, :vehicle, :pre_trip_inspection)
-          .where("(trip_date BETWEEN ? AND ?) OR (trip_date IS NULL AND created_at BETWEEN ? AND ?)",
+          .where("(trips.trip_date BETWEEN ? AND ?) OR (trips.trip_date IS NULL AND trips.created_at BETWEEN ? AND ?)",
                  @month.to_date, @month.end_of_month.to_date, month_range.begin, month_range.end)
     end
 
