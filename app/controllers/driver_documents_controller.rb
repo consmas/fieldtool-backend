@@ -134,7 +134,7 @@ class DriverDocumentsController < ApplicationController
       verified_at: doc.verified_at,
       cost: doc.cost,
       notes: doc.notes,
-      file_url: doc.file.attached? ? Rails.application.routes.url_helpers.rails_blob_url(doc.file, only_path: true) : nil
+      file_url: blob_url_for(doc.file)
     }
   end
 end

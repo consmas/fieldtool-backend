@@ -116,6 +116,6 @@ class Api::V1::Client::ShipmentsController < Api::V1::Client::BaseController
   def blob_path(attachment)
     return nil unless attachment.attached?
 
-    Rails.application.routes.url_helpers.rails_blob_url(attachment, only_path: true)
+    rails_blob_url(attachment, host: request.base_url)
   end
 end

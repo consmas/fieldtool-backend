@@ -45,7 +45,7 @@ class Incidents::EvidenceController < ApplicationController
       longitude: evidence.longitude,
       notes: evidence.notes,
       metadata: evidence.metadata,
-      file_url: evidence.file.attached? ? rails_blob_url(evidence.file, only_path: true) : nil
+      file_url: blob_url_for(evidence.file)
     }
   end
 end

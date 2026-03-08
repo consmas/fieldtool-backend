@@ -17,7 +17,7 @@ class MeController < ApplicationController
           verification_status: doc.verification_status,
           expires_at: doc.expires_at,
           days_until_expiry: doc.days_until_expiry,
-          file_url: doc.file.attached? ? Rails.application.routes.url_helpers.rails_blob_url(doc.file, only_path: true) : nil
+          file_url: blob_url_for(doc.file)
         }
       end
     }

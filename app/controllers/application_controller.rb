@@ -24,6 +24,12 @@ class ApplicationController < ActionController::API
 
   private
 
+  def blob_url_for(attachment)
+    return nil unless attachment&.attached?
+
+    rails_blob_url(attachment, host: request.base_url)
+  end
+
   def ensure_json_request
     return if request.format.json?
     return unless request.headers["Accept"]&.include?("json") || request.headers["Content-Type"]&.include?("json")

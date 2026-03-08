@@ -61,7 +61,7 @@ class VehiclesController < ApplicationController
         expires_at: vehicle.insurance_expires_at,
         coverage_amount: vehicle.insurance_coverage_amount,
         notes: vehicle.insurance_notes,
-        document_url: vehicle.insurance_document.attached? ? Rails.application.routes.url_helpers.rails_blob_url(vehicle.insurance_document, only_path: true) : nil
+        document_url: blob_url_for(vehicle.insurance_document)
       }
     }
   end

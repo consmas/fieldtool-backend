@@ -21,10 +21,7 @@ class Reports::WorkbooksController < ApplicationController
       return
     end
 
-    render json: {
-      report_month: report_month.strftime("%Y-%m"),
-      export_links: export_links("monitoring_workbook")
-    }
+    render json: exporter.monitoring_workbook_payload.merge(export_links: export_links("monitoring_workbook"))
   end
 
   def monitoring_regime
@@ -40,10 +37,7 @@ class Reports::WorkbooksController < ApplicationController
       return
     end
 
-    render json: {
-      report_year: report_month.year,
-      export_links: export_links("monitoring_regime")
-    }
+    render json: exporter.reporting_regime_payload.merge(export_links: export_links("monitoring_regime"))
   end
 
   def budget_workbook
@@ -59,10 +53,7 @@ class Reports::WorkbooksController < ApplicationController
       return
     end
 
-    render json: {
-      report_month: report_month.strftime("%Y-%m"),
-      export_links: export_links("budget_workbook")
-    }
+    render json: exporter.budget_workbook_payload.merge(export_links: export_links("budget_workbook"))
   end
 
   private

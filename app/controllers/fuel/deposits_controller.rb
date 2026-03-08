@@ -265,7 +265,7 @@ class Fuel::DepositsController < ApplicationController
       confirmed_at: deposit.confirmed_at,
       metadata: deposit.metadata,
       receipt_attached: deposit.receipt.attached?,
-      receipt_url: deposit.receipt.attached? ? rails_blob_url(deposit.receipt, only_path: true) : nil,
+      receipt_url: blob_url_for(deposit.receipt),
       created_at: deposit.created_at,
       updated_at: deposit.updated_at
     }

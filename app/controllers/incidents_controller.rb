@@ -203,7 +203,7 @@ class IncidentsController < ApplicationController
       latitude: evidence.latitude,
       longitude: evidence.longitude,
       notes: evidence.notes,
-      file_url: evidence.file.attached? ? Rails.application.routes.url_helpers.rails_blob_url(evidence.file, only_path: true) : nil
+      file_url: blob_url_for(evidence.file)
     }
   end
 

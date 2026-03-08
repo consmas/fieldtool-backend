@@ -73,7 +73,7 @@ class VehicleDocumentsController < ApplicationController
       days_until_expiry: doc.days_until_expiry,
       notes: doc.notes,
       metadata: doc.metadata,
-      file_url: doc.file.attached? ? Rails.application.routes.url_helpers.rails_blob_url(doc.file, only_path: true) : nil,
+      file_url: blob_url_for(doc.file),
       created_at: doc.created_at,
       updated_at: doc.updated_at
     }
