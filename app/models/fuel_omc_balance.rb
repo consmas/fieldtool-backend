@@ -4,6 +4,7 @@ class FuelOmcBalance < ApplicationRecord
   has_many :ledger_entries, class_name: "FuelOmcLedgerEntry", dependent: :destroy
 
   validates :omc_name, inclusion: { in: OMC_NAMES }, uniqueness: true
-  validates :balance, numericality: { greater_than_or_equal_to: 0 }
+  # Balance can go negative when fuel expenses exceed deposits (overdraft mode).
+  validates :balance, numericality: true
   validates :currency, presence: true
 end
