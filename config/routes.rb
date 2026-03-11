@@ -210,6 +210,14 @@ Rails.application.routes.draw do
         post "trips/:id/status", to: "/trips/status#create"
         post "trips/:id/odometer/start", to: "/trips/odometer#start"
         post "trips/:id/odometer/end", to: "/trips/odometer#end"
+        get "trips/:id/pre_trip", to: "/trips/pre_trips#show"
+        post "trips/:id/pre_trip", to: "/trips/pre_trips#create"
+        patch "trips/:id/pre_trip", to: "/trips/pre_trips#update"
+        patch "trips/:id/pre_trip/verify", to: "/trips/pre_trip_verifications#update"
+        patch "trips/:id/pre_trip/confirm", to: "/trips/pre_trip_verifications#confirm"
+        patch "trips/:id/fuel_allocation", to: "/trips/fuel_allocations#update"
+        patch "trips/:id/road_expense", to: "/trips/road_expenses#update"
+        patch "trips/:id/road_expense/receipt", to: "/trips/road_expenses#receipt"
 
         resources :incidents, only: [:index, :show, :create, :update], controller: "/incidents" do
           member do

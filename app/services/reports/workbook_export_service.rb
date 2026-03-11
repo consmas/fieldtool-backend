@@ -51,6 +51,46 @@ module Reports
       "Timing Rule in Document", "Clause / Schedule Reference"
     ].freeze
 
+    MASTER_TRIP_HEADER = [
+      "Reporting Month", "Trip ID", "Waybill No.", "Truck ID", "Driver Name", "Cargo Type",
+      "Origin", "Destination", "Expected Revenue", "Trip Start Date", "Trip Start Time",
+      "Pre-Trip Inspection", "Trip End Date", "Trip End Time", "Post-Trip Inspection", "Trip Duration",
+      "Fuel Purchased (Litres)", "Fuel Cost", "Fuel Used During Trip (Litres)",
+      "Fuel Purchase Payment Type (Cash or Card)", "Arrival Status (Good / Minor Damage / Major Damage)",
+      "Delivery Completed (Y/N)", "Delay (Y/N)", "Reason for Delay", "Incident Occurred (Y/N)", "Remarks"
+    ].freeze
+
+    FLEET_STATUS_HEADER = [
+      "Reporting Month", "Truck ID", "Registration Number", "Operational Status",
+      "Total Trips Completed (Month)", "Downtime (Days)", "Maintenance Conducted (Y/N)", "Maintenance Type",
+      "Date of Last Service", "Next Service Due", "Issues Identified", "Remarks"
+    ].freeze
+
+    DRIVER_PERFORMANCE_HEADER = [
+      "Reporting Month", "Driver", "Trips", "Distance", "Incidents", "Score", "Tier", "Trend"
+    ].freeze
+
+    INSURANCE_COMPLIANCE_HEADER = [
+      "Truck ID", "Policy No", "Insurer", "Issue Date", "Expiry Date", "Road Worthiness", "Registration", "Compliance Status"
+    ].freeze
+
+    INCIDENT_DAMAGE_HEADER = [
+      "Incident No", "Date", "Trip", "Vehicle", "Type", "Severity", "Status", "Estimated Cost", "Actual Cost", "Claim Status"
+    ].freeze
+
+    FABRIMETAL_PAYMENT_HEADER = [
+      "Month", "Invoice No", "Amount Due", "Amount Paid", "Paid Date", "Outstanding", "Variance", "Notes"
+    ].freeze
+
+    SERVICE_KPI_HEADER = [
+      "KPI", "Target", "Actual", "Variance", "RAG"
+    ].freeze
+
+    MANAGEMENT_SUMMARY_HEADER = [
+      "Reporting Month", "Total Trips", "Active Trucks", "Trucks Under Maintenance",
+      "Total Incidents", "Major Operational Issues", "Corrective Actions", "Outlook for Next Month"
+    ].freeze
+
     def initialize(month:, prepared_by:)
       @month = month.beginning_of_month
       @prepared_by = prepared_by
@@ -97,6 +137,7 @@ module Reports
         critical_exceptions: scoped_incidents.where(severity: "critical").count,
         validation_warnings: build_validation_warnings(checklist, missing_count),
         checklist: checklist,
+        tab_headers: tab_headers,
         tabs: {
           master_trip_operations: master_trip_rows,
           fleet_status: fleet_status_rows,
@@ -124,6 +165,10 @@ module Reports
         generated_at: Time.current.iso8601,
         reporting_month: @month.strftime("%Y-%m"),
         prepared_by: @prepared_by,
+        tab_headers: {
+          revenue_breakdown: ["Budget Item", "Number of Trips", "Rate Per Trip", "Amount (GHS)"],
+          monthly_budget: ["Budget Item", "Amount (GHS)", "Remarks"]
+        },
         revenue_breakdown_rows: revenue_breakdown_rows,
         monthly_budget_rows: monthly_budget_rows
       }
@@ -170,7 +215,7 @@ module Reports
     end
 
     def scoped_trips
-      Trip.includes(:driver, :vehicle, :pre_trip_inspection)
+      Trip.includes(:driver, :vehicle, :pre_trip_inspection, :fuel_logs, :incidents)
           .where("(trips.trip_date BETWEEN ? AND ?) OR (trips.trip_date IS NULL AND trips.created_at BETWEEN ? AND ?)",
                  @month.to_date, @month.end_of_month.to_date, month_range.begin, month_range.end)
     end
@@ -199,6 +244,13 @@ module Reports
 
     def master_trip_rows
       scoped_trips.order(:trip_date, :id).map do |trip|
+        start_timestamp = trip_start_timestamp(trip)
+        end_timestamp = trip_end_timestamp(trip)
+        fuel_litres = trip_fuel_purchased_litres(trip)
+        fuel_cost = trip_fuel_cost(trip, fuel_litres)
+        delay = trip_delayed?(trip, end_timestamp)
+        incident_occurred = trip.incidents.any? || trip.notes_incidents.present?
+
         [
           reporting_month_label,
           trip.id,
@@ -209,12 +261,23 @@ module Reports
           trip.pickup_location,
           trip.destination.presence || trip.dropoff_location,
           trip.road_expense_disbursed.to_d,
-          trip.trip_date,
-          trip.scheduled_pickup_at&.strftime("%H:%M"),
+          start_timestamp&.to_date,
+          start_timestamp&.strftime("%H:%M"),
           trip.pre_trip_inspection.present? ? "Yes" : "No",
-          trip.completed_at&.to_date,
-          trip.completed_at&.strftime("%H:%M"),
-          trip.vehicle_condition_post_trip
+          end_timestamp&.to_date,
+          end_timestamp&.strftime("%H:%M"),
+          post_trip_inspection_status(trip),
+          format_trip_duration(start_timestamp, end_timestamp),
+          fuel_litres,
+          fuel_cost,
+          trip_fuel_used_litres(trip, fuel_litres),
+          fuel_payment_type_label(trip),
+          arrival_status_label(trip),
+          trip.status_completed? ? "Y" : "N",
+          delay ? "Y" : "N",
+          delay ? trip.notes_incidents.presence || trip.dropoff_notes.presence || "Not specified" : nil,
+          incident_occurred ? "Y" : "N",
+          trip.notes_incidents.presence || trip.dropoff_notes.presence || trip.special_instructions
         ]
       end
     end
@@ -229,20 +292,12 @@ module Reports
     end
 
     def master_trip_header
-      [
-        "Reporting Month", "Trip ID", "Waybill No.", "Truck ID", "Driver Name", "Cargo Type",
-        "Origin", "Destination", "Expected Revenue ", "Trip Start Date", "Trip Start Time",
-        "Pre-Trip Inspection", "Trip End Date", "Trip End Time", "Post-Trip inspection"
-      ]
+      MASTER_TRIP_HEADER
     end
 
     def add_fleet_status_sheet(wb)
       wb.add_worksheet(name: "Fleet Status (Monthly)") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "Truck ID", "Registration Number", "Operational Status (Operational / Under Maintenance / Grounded)",
-          "Total Trips Completed (Month)", "Downtime (Days)", "Maintenance Conducted (Y/N)", "Maintenance Type",
-          "Date of Last Service", "Next Service Due", "Issues Identified", "Remarks"
-        ])
+        sheet.add_row(FLEET_STATUS_HEADER)
 
         fleet_status_rows.each { |row| sheet.add_row(row) }
       end
@@ -250,10 +305,7 @@ module Reports
 
     def add_driver_performance_sheet(wb)
       wb.add_worksheet(name: "Driver Performance (Monthly)") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "Driver Name", "Assigned Truck", "Trips Completed", "Incidents Recorded",
-          "Safety Breaches", "Training Conducted (Y/N)", "Training Type", "Remarks"
-        ])
+        sheet.add_row(DRIVER_PERFORMANCE_HEADER)
 
         driver_performance_rows.each { |row| sheet.add_row(row) }
       end
@@ -261,10 +313,7 @@ module Reports
 
     def add_insurance_compliance_sheet(wb)
       wb.add_worksheet(name: "Insurance & Compliance Tracker") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "Truck ID", "Insurance Provider", "Policy Number", "Coverage Type", "Policy Start Date",
-          "Policy Expiry Date", "Renewal Status", "Roadworthiness Status", "Driver Licence Validity", "Remarks"
-        ])
+        sheet.add_row(INSURANCE_COMPLIANCE_HEADER)
 
         insurance_compliance_rows.each { |row| sheet.add_row(row) }
       end
@@ -272,10 +321,7 @@ module Reports
 
     def add_incident_damage_sheet(wb)
       wb.add_worksheet(name: "Incident & Damage Register") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "Date", "Truck ID", "Trip ID", "Driver Name", "Incident Type", "Description",
-          "Damage Level", "Insurance Notified (Y/N)", "Claim Filed (Y/N)", "Claim Status", "Corrective Action Taken", "Remarks"
-        ])
+        sheet.add_row(INCIDENT_DAMAGE_HEADER)
 
         incident_damage_rows.each { |row| sheet.add_row(row) }
       end
@@ -283,11 +329,7 @@ module Reports
 
     def add_fabrimetal_payment_sheet(wb)
       wb.add_worksheet(name: "Fabrimetal Payment Monitoring") do |sheet|
-        sheet.add_row([
-          "Month", "Invoice Sent Date", "Amount Invoiced", "Fabrimetal Received Invoice Date",
-          "Payment Due Date (5 working days)", "Payment Received Date", "Amount Paid", "Fully Paid (Y/N)",
-          "30-Day Interest Trigger Date", "Late? (Y/N)", "Notes"
-        ])
+        sheet.add_row(FABRIMETAL_PAYMENT_HEADER)
 
         fabrimetal_payment_rows.each { |row| sheet.add_row(row) }
       end
@@ -295,13 +337,7 @@ module Reports
 
     def add_service_kpi_sheet(wb)
       wb.add_worksheet(name: "Service KPIs Monitor") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "On-Time Delivery Breaches (No.)", "Dates", "Penalty Applied",
-          "Customer Complaint Breaches (No.)", "Dates", "Penalty Applied",
-          "Failed Deliveries (No.)", "Dates", "Penalty Applied",
-          "Breakdown Response >2hrs (No.)", "Dates", "Penalty Applied",
-          "Vehicle Condition Breaches (No.)", "Dates", "Penalty Applied"
-        ])
+        sheet.add_row(SERVICE_KPI_HEADER)
 
         service_kpi_rows.each { |row| sheet.add_row(row) }
       end
@@ -309,10 +345,7 @@ module Reports
 
     def add_management_summary_sheet(wb)
       wb.add_worksheet(name: "Management Summary") do |sheet|
-        sheet.add_row([
-          "Reporting Month", "Total Trips", "Active Trucks", "Trucks Under Maintenance",
-          "Total Incidents", "Major Operational Issues", "Corrective Actions", "Outlook for Next Month"
-        ])
+        sheet.add_row(MANAGEMENT_SUMMARY_HEADER)
         management_summary_rows.each { |row| sheet.add_row(row) }
       end
     end
@@ -369,10 +402,35 @@ module Reports
       when "master_trip_operations"
         [master_trip_header] + master_trip_rows
       when "fleet_status"
-        [["Reporting Month", "Truck ID", "Registration Number", "Operational Status", "Total Trips Completed (Month)", "Downtime (Days)", "Maintenance Conducted (Y/N)", "Maintenance Type"]]
+        [FLEET_STATUS_HEADER] + fleet_status_rows
+      when "driver_performance"
+        [DRIVER_PERFORMANCE_HEADER] + driver_performance_rows
+      when "insurance_compliance"
+        [INSURANCE_COMPLIANCE_HEADER] + insurance_compliance_rows
+      when "incident_damage_register"
+        [INCIDENT_DAMAGE_HEADER] + incident_damage_rows
+      when "fabrimetal_payment_monitoring"
+        [FABRIMETAL_PAYMENT_HEADER] + fabrimetal_payment_rows
+      when "service_kpis_monitor"
+        [SERVICE_KPI_HEADER] + service_kpi_rows
+      when "management_summary"
+        [MANAGEMENT_SUMMARY_HEADER] + management_summary_rows
       else
         [master_trip_header] + master_trip_rows
       end
+    end
+
+    def tab_headers
+      {
+        master_trip_operations: MASTER_TRIP_HEADER,
+        fleet_status: FLEET_STATUS_HEADER,
+        driver_performance: DRIVER_PERFORMANCE_HEADER,
+        insurance_compliance: INSURANCE_COMPLIANCE_HEADER,
+        incident_damage_register: INCIDENT_DAMAGE_HEADER,
+        fabrimetal_payment_monitoring: FABRIMETAL_PAYMENT_HEADER,
+        service_kpis_monitor: SERVICE_KPI_HEADER,
+        management_summary: MANAGEMENT_SUMMARY_HEADER
+      }
     end
 
     def fleet_status_rows
@@ -413,16 +471,20 @@ module Reports
       User.where(role: :driver).order(:id).map do |driver|
         trips = scoped_trips.where(driver_id: driver.id)
         incidents = scoped_incidents.where(driver_id: driver.id)
+        profile = DriverProfile.find_by(user_id: driver.id)
+        score = profile&.driver_scores&.where(period_type: "monthly")
+                       &.where(scoring_period: @month.to_date..@month.end_of_month.to_date)
+                       &.order(scoring_period: :desc)&.first || profile&.driver_scores&.where(period_type: "monthly")&.order(scoring_period: :desc)&.first
+
         [
           reporting_month_label,
           driver.name,
-          trips.joins(:vehicle).group("vehicles.license_plate").order(Arel.sql("COUNT(*) DESC")).count.keys.first,
           trips.where(status: :completed).count,
+          trips.sum(:distance_km).to_d.round(2),
           incidents.count,
-          incidents.where(severity: %w[high critical]).count,
-          "N",
-          nil,
-          nil
+          score&.overall_score&.to_d,
+          profile&.score_tier&.to_s&.titleize,
+          score&.trend&.to_s&.titleize
         ]
       end
     end
@@ -431,32 +493,17 @@ module Reports
       Vehicle.order(:id).map do |vehicle|
         roadworthiness = vehicle.vehicle_documents.where(document_type: "roadworthiness").order(expires_at: :desc).first
         registration = vehicle.vehicle_documents.where(document_type: "registration").order(expires_at: :desc).first
-        driver_license_validity = DriverProfile.joins(:user)
-                                              .where(user_id: scoped_trips.where(vehicle_id: vehicle.id).select(:driver_id))
-                                              .maximum(:license_expires_at)
-
-        renewal_status = if vehicle.insurance_expires_at.blank?
-                           "Unknown"
-                         elsif vehicle.insurance_expires_at < Date.current
-                           "Expired"
-                         elsif vehicle.insurance_expires_at <= 30.days.from_now.to_date
-                           "Due Soon"
-                         else
-                           "Active"
-                         end
+        compliance_status = insurance_compliance_status(vehicle, roadworthiness, registration)
 
         [
-          reporting_month_label,
           vehicle.id,
-          vehicle.insurance_provider,
           vehicle.insurance_policy_number,
-          vehicle.kind,
+          vehicle.insurance_provider,
           vehicle.insurance_issued_at,
           vehicle.insurance_expires_at,
-          renewal_status,
           roadworthiness&.expires_at.present? && roadworthiness.expires_at >= Date.current ? "Valid" : "Expired/Unknown",
-          driver_license_validity,
-          registration&.document_number
+          registration&.expires_at.present? && registration.expires_at >= Date.current ? "Valid" : "Expired/Unknown",
+          compliance_status
         ]
       end
     end
@@ -465,19 +512,16 @@ module Reports
       scoped_incidents.order(:incident_date, :id).map do |incident|
         claim = InsuranceClaim.find_by(incident_id: incident.id)
         [
-          reporting_month_label,
+          incident.incident_number,
           incident.incident_date&.to_date,
-          incident.vehicle&.license_plate || incident.vehicle_id,
           incident.trip_id,
-          incident.driver&.name,
+          incident.vehicle&.license_plate || incident.vehicle_id,
           incident.incident_type,
-          incident.description,
           incident.severity,
-          claim.present? ? "Y" : "N",
-          claim&.filed_at.present? ? "Y" : "N",
-          claim&.status,
-          incident.corrective_actions,
-          incident.closure_notes
+          incident.status,
+          incident.estimated_damage_cost.to_d,
+          incident.actual_damage_cost.to_d,
+          claim&.status || "N/A"
         ]
       end
     end
@@ -488,18 +532,15 @@ module Reports
              .where("issued_date BETWEEN ? AND ?", @month.to_date, @month.end_of_month.to_date)
              .map do |invoice|
         payment_received_date = invoice.status == "paid" ? invoice.updated_at.to_date : nil
-        due_date = invoice.due_date || (invoice.issued_date && (invoice.issued_date + 7.days))
+        variance = invoice.amount_paid.to_d - invoice.total_amount.to_d
         [
           reporting_month_label,
-          invoice.issued_date,
+          invoice.invoice_number,
           invoice.total_amount.to_d,
-          invoice.issued_date,
-          due_date,
-          payment_received_date,
           invoice.amount_paid.to_d,
-          invoice.balance_due.to_d.zero? ? "Y" : "N",
-          due_date&.+(30.days),
-          due_date.present? && payment_received_date.present? && payment_received_date > due_date ? "Y" : "N",
+          payment_received_date,
+          invoice.balance_due.to_d,
+          variance,
           invoice.notes
         ]
       end
@@ -516,24 +557,13 @@ module Reports
       )
       vehicle_condition_breaches = trips.where(vehicle_condition_post_trip: Trip.vehicle_condition_post_trips[:damaged]).order(:updated_at)
 
-      [[
-        reporting_month_label,
-        on_time_breaches.count,
-        on_time_breaches.limit(5).map { |t| t.completed_at&.to_date }.compact.join(", "),
-        nil,
-        complaint_breaches.count,
-        complaint_breaches.limit(5).map { |i| i.incident_date&.to_date }.compact.join(", "),
-        nil,
-        failed_deliveries.count,
-        failed_deliveries.limit(5).map { |t| t.updated_at&.to_date }.compact.join(", "),
-        nil,
-        response_breaches.count,
-        response_breaches.limit(5).map { |i| i.incident_date&.to_date }.compact.join(", "),
-        nil,
-        vehicle_condition_breaches.count,
-        vehicle_condition_breaches.limit(5).map { |t| t.updated_at&.to_date }.compact.join(", "),
-        nil
-      ]]
+      [
+        kpi_row("On-time Delivery Breaches", 0, on_time_breaches.count),
+        kpi_row("Customer Complaint Breaches", 0, complaint_breaches.count),
+        kpi_row("Failed Deliveries", 0, failed_deliveries.count),
+        kpi_row("Breakdown Response >2hrs", 0, response_breaches.count),
+        kpi_row("Vehicle Condition Breaches", 0, vehicle_condition_breaches.count)
+      ]
     end
 
     def management_summary_rows
@@ -552,6 +582,101 @@ module Reports
         incidents.where.not(corrective_actions: [nil, ""]).limit(3).pluck(:corrective_actions).join(" | "),
         nil
       ]]
+    end
+
+    def trip_start_timestamp(trip)
+      trip.scheduled_pickup_at || trip.trip_date&.in_time_zone
+    end
+
+    def trip_end_timestamp(trip)
+      trip.completed_at || trip.scheduled_dropoff_at
+    end
+
+    def post_trip_inspection_status(trip)
+      trip.post_trip_inspector_name.present? || trip.end_odometer_captured_at.present? ? "Yes" : "No"
+    end
+
+    def format_trip_duration(start_timestamp, end_timestamp)
+      return nil if start_timestamp.blank? || end_timestamp.blank?
+      return nil if end_timestamp < start_timestamp
+
+      total_minutes = ((end_timestamp - start_timestamp) / 60).to_i
+      hours = total_minutes / 60
+      minutes = total_minutes % 60
+      "#{hours}h #{minutes}m"
+    end
+
+    def trip_fuel_purchased_litres(trip)
+      liters = trip.fuel_litres_filled.to_d
+      liters = trip.fuel_logs.sum { |log| log.liters.to_d } if liters.zero?
+      liters
+    end
+
+    def trip_fuel_cost(trip, fuel_litres)
+      from_logs = trip.fuel_logs.sum { |log| log.total_cost.to_d }
+      return from_logs if from_logs.positive?
+
+      return 0.to_d if fuel_litres.to_d.zero?
+
+      fuel_litres.to_d * effective_fuel_price_for(trip_start_timestamp(trip))
+    end
+
+    def trip_fuel_used_litres(trip, fuel_litres)
+      allocated = trip.fuel_allocated_litres.to_d
+      return allocated if allocated.positive?
+
+      fuel_litres.to_d
+    end
+
+    def fuel_payment_type_label(trip)
+      return "Cash" if trip.fuel_payment_mode_cash?
+
+      "Card"
+    end
+
+    def arrival_status_label(trip)
+      case trip.vehicle_condition_post_trip
+      when "good" then "Good"
+      when "requires_service" then "Minor Damage"
+      when "damaged" then "Major Damage"
+      else "Good"
+      end
+    end
+
+    def trip_delayed?(trip, end_timestamp)
+      return false if end_timestamp.blank? || trip.scheduled_dropoff_at.blank?
+
+      end_timestamp > trip.scheduled_dropoff_at
+    end
+
+    def effective_fuel_price_for(timestamp)
+      price_date = (timestamp || @month).to_date
+      @effective_fuel_price_cache ||= {}
+      return @effective_fuel_price_cache[price_date] if @effective_fuel_price_cache.key?(price_date)
+
+      price = FuelPrice.where("effective_at <= ?", price_date.end_of_day).order(effective_at: :desc).limit(1).pick(:price_per_liter).to_d
+      @effective_fuel_price_cache[price_date] = price
+    end
+
+    def insurance_compliance_status(vehicle, roadworthiness, registration)
+      insurance_valid = vehicle.insurance_expires_at.present? && vehicle.insurance_expires_at >= Date.current
+      road_valid = roadworthiness&.expires_at.present? && roadworthiness.expires_at >= Date.current
+      registration_valid = registration&.expires_at.present? && registration.expires_at >= Date.current
+      return "Compliant" if insurance_valid && road_valid && registration_valid
+
+      "Attention Required"
+    end
+
+    def kpi_row(label, target, actual)
+      variance = actual.to_i - target.to_i
+      [label, target, actual, variance, rag_status_for_kpi(variance)]
+    end
+
+    def rag_status_for_kpi(variance)
+      return "Green" if variance <= 0
+      return "Amber" if variance <= 2
+
+      "Red"
     end
 
     def revenue_breakdown_rows

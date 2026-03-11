@@ -437,12 +437,27 @@ Webhook admin:
 - `GET /reports/monitoring_workbook`
   - Query: `month=YYYY-MM`
   - Export: add `export=xlsx` (multi-sheet workbook) or `export=csv` (single-sheet CSV).
+  - JSON now includes:
+    - `tab_headers` keyed by tab (`master_trip_operations`, `fleet_status`, etc.).
+    - `tabs.master_trip_operations` with full workbook columns including:
+      - `Trip Duration`
+      - `Fuel Purchased (Litres)`
+      - `Fuel Cost`
+      - `Fuel Used During Trip (Litres)`
+      - `Fuel Purchase Payment Type (Cash or Card)`
+      - `Arrival Status (Good / Minor Damage / Major Damage)`
+      - `Delivery Completed (Y/N)`
+      - `Delay (Y/N)`
+      - `Reason for Delay`
+      - `Incident Occurred (Y/N)`
+      - `Remarks`
 - `GET /reports/monitoring_regime`
   - Query: `month=YYYY-MM`
   - Export: add `export=xlsx`.
 - `GET /reports/budget_workbook`
   - Query: `month=YYYY-MM`
   - Export: add `export=xlsx`.
+  - JSON now includes `tab_headers` for `revenue_breakdown` and `monthly_budget`.
 
 Common query params (where relevant):
 - `date_from`, `date_to`
