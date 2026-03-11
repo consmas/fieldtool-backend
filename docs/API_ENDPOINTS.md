@@ -458,6 +458,9 @@ Webhook admin:
   - Query: `month=YYYY-MM`
   - Export: add `export=xlsx`.
   - JSON now includes `tab_headers` for `revenue_breakdown` and `monthly_budget`.
+- `POST /reports/workbook_sync`
+  - Optional body/query: `month=YYYY-MM`
+  - Triggers backend data sync/backfill for workbook source tables (trips, road expenses, fuel logs, driver profiles/scores) and returns a summary.
 
 Common query params (where relevant):
 - `date_from`, `date_to`

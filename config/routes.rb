@@ -192,6 +192,7 @@ Rails.application.routes.draw do
         get "reports/monitoring_workbook", to: "/reports/workbooks#monitoring_workbook"
         get "reports/monitoring_regime", to: "/reports/workbooks#monitoring_regime"
         get "reports/budget_workbook", to: "/reports/workbooks#budget_workbook"
+        post "reports/workbook_sync", to: "/reports/workbooks#sync"
 
         get "audit/logs", to: "/audit/logs#index"
         post "audit/logs", to: "/audit/logs#create"

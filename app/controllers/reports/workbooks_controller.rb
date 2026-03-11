@@ -68,6 +68,20 @@ class Reports::WorkbooksController < ApplicationController
     render json: { error: "Budget workbook generation failed", detail: e.message }, status: :internal_server_error
   end
 
+  def sync
+    authorize :fleet_report, :show?
+
+    summary = Reports::WorkbookBackfillService.new(
+      actor: current_user,
+      month: params[:month]
+    ).call
+
+    render json: { message: "Workbook sync completed", summary: summary }
+  rescue StandardError => e
+    Rails.logger.error("[WorkbookSyncError] month=#{params[:month]} error=#{e.class}: #{e.message}")
+    render json: { error: "Workbook sync failed", detail: e.message }, status: :internal_server_error
+  end
+
   private
 
   def report_month
