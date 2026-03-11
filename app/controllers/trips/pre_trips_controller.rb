@@ -4,7 +4,7 @@ class Trips::PreTripsController < ApplicationController
     trip = Trip.find(params[:trip_id])
     pre_trip = trip.pre_trip_inspection
     if pre_trip.nil?
-      return render json: { error: "Pre-trip inspection not found" }, status: :not_found
+      return render json: empty_pre_trip_payload(trip)
     end
 
     authorize pre_trip
@@ -156,6 +156,7 @@ class Trips::PreTripsController < ApplicationController
     {
       id: pre_trip.id,
       trip_id: pre_trip.trip_id,
+      exists: true,
       captured_by_id: pre_trip.captured_by_id,
       odometer_value_km: pre_trip.odometer_value_km,
       odometer_captured_at: pre_trip.odometer_captured_at,
@@ -266,5 +267,55 @@ class Trips::PreTripsController < ApplicationController
       payload: Webhooks::InspectionWebhookSerializer.new(pre_trip).as_json,
       triggered_by: current_user
     )
+  end
+
+  def empty_pre_trip_payload(trip)
+    {
+      id: nil,
+      trip_id: trip.id,
+      exists: false,
+      captured_by_id: nil,
+      odometer_value_km: nil,
+      odometer_captured_at: nil,
+      odometer_lat: nil,
+      odometer_lng: nil,
+      brakes: nil,
+      tyres: nil,
+      lights: nil,
+      mirrors: nil,
+      horn: nil,
+      fuel_sufficient: nil,
+      load_area_ready: nil,
+      load_status: nil,
+      load_secured: nil,
+      load_note: nil,
+      accepted: nil,
+      accepted_at: nil,
+      waybill_number: trip.waybill_number,
+      assistant_name: nil,
+      assistant_phone: nil,
+      fuel_level: nil,
+      inspection_verification_status: "pending",
+      inspection_verified_by_id: nil,
+      inspection_verified_at: nil,
+      inspection_verification_note: nil,
+      inspection_confirmed: false,
+      inspection_confirmed_by_id: nil,
+      inspection_confirmed_at: nil,
+      core_checklist: {},
+      core_checklist_template: PreTripInspection::CORE_CHECKLIST_TEMPLATE,
+      odometer_photo_attached: false,
+      load_photo_attached: false,
+      waybill_photo_attached: false,
+      inspector_signature_attached: false,
+      inspector_photo_attached: false,
+      odometer_photo_url: nil,
+      load_photo_url: nil,
+      waybill_photo_url: nil,
+      inspector_signature_url: nil,
+      inspector_photo_url: nil,
+      created_at: nil,
+      updated_at: nil
+    }
   end
 end
