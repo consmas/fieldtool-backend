@@ -24,6 +24,7 @@ class Trips::PreTripsController < ApplicationController
     end
     pre_trip.captured_by ||= current_user
     pre_trip.odometer_captured_at ||= Time.current
+    apply_lenient_defaults(pre_trip)
 
     if params[:pre_trip]&.key?(:waybill_number)
       trip.update!(waybill_number: params[:pre_trip][:waybill_number])
@@ -75,6 +76,7 @@ class Trips::PreTripsController < ApplicationController
       pre_trip.core_checklist = checklist
     end
     pre_trip.odometer_captured_at ||= Time.current
+    apply_lenient_defaults(pre_trip)
     attach_photos(pre_trip)
     pre_trip.save!
     sync_trip_start_odometer(pre_trip)
@@ -236,6 +238,19 @@ class Trips::PreTripsController < ApplicationController
     trip.start_odometer_lng = pre_trip.odometer_lng
     trip.start_odometer_photo.attach(pre_trip.odometer_photo.blob) unless trip.start_odometer_photo.attached?
     trip.save!
+  end
+
+  # Keep admin web saves resilient while frontend evolves; DB has NOT NULL fields.
+  def apply_lenient_defaults(pre_trip)
+    pre_trip.odometer_value_km = 0 if pre_trip.odometer_value_km.blank?
+    pre_trip.odometer_captured_at ||= Time.current
+    pre_trip.brakes = false if pre_trip.brakes.nil?
+    pre_trip.tyres = false if pre_trip.tyres.nil?
+    pre_trip.lights = false if pre_trip.lights.nil?
+    pre_trip.mirrors = false if pre_trip.mirrors.nil?
+    pre_trip.horn = false if pre_trip.horn.nil?
+    pre_trip.fuel_sufficient = false if pre_trip.fuel_sufficient.nil?
+    pre_trip.accepted = false if pre_trip.accepted.nil?
   end
 
   def emit_inspection_failed_event_if_needed(pre_trip)

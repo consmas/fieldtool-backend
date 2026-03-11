@@ -51,44 +51,13 @@ class PreTripInspection < ApplicationRecord
   has_one_attached :inspector_signature
   has_one_attached :inspector_photo
 
-  validates :odometer_value_km, presence: true
-  validates :odometer_captured_at, presence: true
-  validates :brakes, :tyres, :lights, :mirrors, :horn, :fuel_sufficient, inclusion: { in: [true, false] }
-  validates :accepted, inclusion: { in: [true, false] }
   validates :trip_id, uniqueness: true
 
-  validate :odometer_photo_attached
-  validate :accepted_at_required_when_accepted
-  validate :load_fields_consistency
   validate :core_checklist_structure
 
   before_validation :normalize_core_checklist
 
   private
-
-  def odometer_photo_attached
-    errors.add(:odometer_photo, "must be attached") unless odometer_photo.attached?
-  end
-
-  def accepted_at_required_when_accepted
-    return unless accepted && accepted_at.blank?
-
-    errors.add(:accepted_at, "must be present when accepted")
-  end
-
-  def load_fields_consistency
-    load_fields_touched =
-      will_save_change_to_load_area_ready? ||
-      will_save_change_to_load_status? ||
-      will_save_change_to_load_secured? ||
-      will_save_change_to_load_note? ||
-      attachment_changes.key?("load_photo")
-    return unless load_fields_touched
-
-    errors.add(:load_area_ready, "must be set") if load_area_ready.nil?
-    errors.add(:load_status, "must be set") if load_status.nil?
-    errors.add(:load_secured, "must be set") if load_secured.nil?
-  end
 
   def normalize_core_checklist
     return if core_checklist.blank?
