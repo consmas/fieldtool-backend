@@ -2,16 +2,17 @@ class Trips::RoadExpensesController < ApplicationController
   def update
     trip = Trip.find(params[:trip_id])
     authorize trip, :manage_logistics?
+    permitted = road_expense_params
 
     trip.update!(
-      road_expense_disbursed: road_expense_params[:road_expense_disbursed],
-      road_expense_reference: road_expense_params[:road_expense_reference],
-      road_expense_payment_status: road_expense_params[:road_expense_payment_status],
-      road_expense_payment_method: road_expense_params[:road_expense_payment_method],
-      road_expense_payment_reference: road_expense_params[:road_expense_payment_reference],
-      road_expense_note: road_expense_params[:road_expense_note],
-      road_expense_paid_by: (road_expense_params[:road_expense_payment_status] == "paid" ? current_user : trip.road_expense_paid_by),
-      road_expense_paid_at: (road_expense_params[:road_expense_payment_status] == "paid" ? Time.current : trip.road_expense_paid_at)
+      road_expense_disbursed: normalize_decimal(permitted[:road_expense_disbursed]),
+      road_expense_reference: permitted[:road_expense_reference],
+      road_expense_payment_status: permitted[:road_expense_payment_status],
+      road_expense_payment_method: permitted[:road_expense_payment_method],
+      road_expense_payment_reference: permitted[:road_expense_payment_reference],
+      road_expense_note: permitted[:road_expense_note],
+      road_expense_paid_by: (permitted[:road_expense_payment_status] == "paid" ? current_user : trip.road_expense_paid_by),
+      road_expense_paid_at: (permitted[:road_expense_payment_status] == "paid" ? Time.current : trip.road_expense_paid_at)
     )
 
     TripEvent.create!(
@@ -50,7 +51,8 @@ class Trips::RoadExpensesController < ApplicationController
   private
 
   def road_expense_params
-    params.require(:road_expense).permit(
+    source = params[:road_expense].presence || params
+    ActionController::Parameters.new(source).permit(
       :road_expense_disbursed,
       :road_expense_reference,
       :road_expense_payment_status,
@@ -58,6 +60,12 @@ class Trips::RoadExpensesController < ApplicationController
       :road_expense_payment_reference,
       :road_expense_note
     )
+  end
+
+  def normalize_decimal(value)
+    return nil if value.nil?
+
+    value.to_s.delete(",")
   end
 
   def road_expense_payload(trip)
