@@ -64,6 +64,21 @@ class Fuel::DepositsController < ApplicationController
     render json: payload(deposit)
   end
 
+  def destroy
+    deposit = FuelDeposit.find(params[:id])
+    authorize deposit, :destroy?
+
+    FuelDeposit.transaction do
+      if deposit.status == "confirmed"
+        Fuel::OmcWalletService.reverse_confirmed_deposit!(deposit: deposit, actor: current_user)
+      end
+
+      deposit.destroy!
+    end
+
+    head :no_content
+  end
+
   def balances
     authorize FuelDeposit, :balances?
     rows = FuelOmcBalance.order(:omc_name)

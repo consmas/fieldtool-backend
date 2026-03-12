@@ -59,6 +59,34 @@ module Fuel
         end
       end
 
+      def reverse_confirmed_deposit!(deposit:, actor: nil)
+        raise ArgumentError, "deposit must be confirmed" unless deposit.status == "confirmed"
+
+        with_locked_balance(deposit.omc_name) do |balance|
+          before = balance.balance.to_d
+          amount = deposit.amount.to_d
+          raise InsufficientBalanceError, "Insufficient OMC balance to reverse deposit ##{deposit.id}" if before < amount
+
+          after = before - amount
+          balance.update!(balance: after)
+          FuelOmcLedgerEntry.create!(
+            fuel_omc_balance: balance,
+            entry_type: "debit",
+            amount: amount,
+            balance_before: before,
+            balance_after: after,
+            reference: deposit,
+            actor: actor,
+            note: "Fuel deposit reversal debit",
+            metadata: {
+              deposit_id: deposit.id,
+              reversal: true,
+              reference_no: deposit.reference_no
+            }
+          )
+        end
+      end
+
       private
 
       def with_locked_balance(omc_name)

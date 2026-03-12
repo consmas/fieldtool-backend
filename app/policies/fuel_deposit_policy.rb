@@ -15,6 +15,10 @@ class FuelDepositPolicy < ApplicationPolicy
     finance_or_admin?
   end
 
+  def destroy?
+    finance_or_admin?
+  end
+
   def confirm?
     finance_or_admin?
   end

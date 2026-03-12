@@ -7,7 +7,7 @@ class FuelLog < ApplicationRecord
   belongs_to :vehicle
   belongs_to :trip, optional: true
   belongs_to :driver, class_name: "User", optional: true
-  belongs_to :recorder, class_name: "User", foreign_key: :recorded_by, optional: true
+  belongs_to :recorder, class_name: "User", foreign_key: :recorded_by_id, optional: true
 
   validates :transaction_type, inclusion: { in: TRANSACTION_TYPES }
   validates :fuel_type, inclusion: { in: FUEL_TYPES }

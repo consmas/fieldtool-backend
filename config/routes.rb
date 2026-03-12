@@ -144,6 +144,7 @@ Rails.application.routes.draw do
         post "fuel/deposits", to: "/fuel/deposits#create"
         get "fuel/deposits/:id", to: "/fuel/deposits#show"
         patch "fuel/deposits/:id", to: "/fuel/deposits#update"
+        delete "fuel/deposits/:id", to: "/fuel/deposits#destroy"
         post "fuel/deposits/:id/confirm", to: "/fuel/deposits#confirm"
         post "fuel/deposits/reconcile", to: "/fuel/deposits#reconcile"
         get "fuel/omc_balances", to: "/fuel/deposits#balances"

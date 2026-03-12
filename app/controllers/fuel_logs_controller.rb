@@ -24,7 +24,7 @@ class FuelLogsController < ApplicationController
 
     fuel_log = vehicle.fuel_logs.new(fuel_log_params)
     fuel_log.driver_id ||= params[:driver_id]
-    fuel_log.recorded_by ||= current_user.id
+    fuel_log.recorded_by_id ||= current_user.id
     FuelLog.transaction do
       fuel_log.save!
       Fuel::OmcWalletService.debit_for_fuel_log!(fuel_log: fuel_log, actor: current_user)
@@ -41,7 +41,7 @@ class FuelLogsController < ApplicationController
     fuel_log.trip_id = trip.id
     fuel_log.vehicle_id ||= trip.vehicle_id
     fuel_log.driver_id ||= trip.driver_id
-    fuel_log.recorded_by ||= current_user.id
+    fuel_log.recorded_by_id ||= current_user.id
     FuelLog.transaction do
       fuel_log.save!
       Fuel::OmcWalletService.debit_for_fuel_log!(fuel_log: fuel_log, actor: current_user)
@@ -72,7 +72,7 @@ class FuelLogsController < ApplicationController
       :funding_source,
       :omc_name,
       :fueled_at,
-      :recorded_by,
+      :recorded_by_id,
       :notes,
       metadata: {}
     )
@@ -109,7 +109,8 @@ class FuelLogsController < ApplicationController
       omc_name: row.omc_name,
       deducted_from_omc: row.deducted_from_omc,
       fueled_at: row.fueled_at,
-      recorded_by: row.recorded_by,
+      recorded_by_id: row.recorded_by_id,
+      recorded_by_name: row.recorder&.name,
       notes: row.notes,
       metadata: row.metadata,
       created_at: row.created_at

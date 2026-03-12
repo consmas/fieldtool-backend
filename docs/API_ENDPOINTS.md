@@ -87,6 +87,7 @@ All requests (except login) require:
 - `POST /api/v1/fuel/deposits` (multipart supported with `receipt`)
 - `GET /api/v1/fuel/deposits/:id`
 - `PATCH /api/v1/fuel/deposits/:id` (multipart supported with `receipt`)
+- `DELETE /api/v1/fuel/deposits/:id`
 - `POST /api/v1/fuel/deposits/:id/confirm`
 - `POST /api/v1/fuel/deposits/reconcile`
 - `GET /api/v1/fuel/omc_balances`
