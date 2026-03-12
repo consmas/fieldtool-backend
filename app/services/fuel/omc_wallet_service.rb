@@ -65,7 +65,6 @@ module Fuel
         with_locked_balance(deposit.omc_name) do |balance|
           before = balance.balance.to_d
           amount = deposit.amount.to_d
-          raise InsufficientBalanceError, "Insufficient OMC balance to reverse deposit ##{deposit.id}" if before < amount
 
           after = before - amount
           balance.update!(balance: after)
