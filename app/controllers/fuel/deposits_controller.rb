@@ -1,5 +1,8 @@
 class Fuel::DepositsController < ApplicationController
   include Rails.application.routes.url_helpers
+  rescue_from Fuel::OmcWalletService::InsufficientBalanceError do |error|
+    render json: { error: [error.message] }, status: :unprocessable_entity
+  end
 
   def index
     authorize FuelDeposit
@@ -77,6 +80,8 @@ class Fuel::DepositsController < ApplicationController
     end
 
     head :no_content
+  rescue ActiveRecord::RecordInvalid => e
+    render json: { error: e.record.errors.full_messages.presence || [e.message] }, status: :unprocessable_entity
   end
 
   def balances
