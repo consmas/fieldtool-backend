@@ -41,12 +41,13 @@ class DriverDocumentsController < ApplicationController
     authorize doc, :verify?
 
     status = params.require(:verification_status)
-    doc.update!(
+    updates = {
       verification_status: status,
-      verified_by: current_user.id,
-      verified_at: Time.current,
       notes: [doc.notes, params[:notes]].compact.join("\n")
-    )
+    }
+    updates[:verified_by] = current_user.id if doc.has_attribute?(:verified_by)
+    updates[:verified_at] = Time.current if doc.has_attribute?(:verified_at)
+    doc.update!(updates)
 
     render json: payload(doc)
   end
@@ -154,6 +155,16 @@ class DriverDocumentsController < ApplicationController
   end
 
   def payload(doc)
+    verified_by_value =
+      if doc.respond_to?(:verified_by)
+        doc.verified_by
+      elsif doc.respond_to?(:verified_by_id)
+        doc.verified_by_id
+      else
+        nil
+      end
+    verified_at_value = doc.respond_to?(:verified_at) ? doc.verified_at : nil
+
     {
       id: doc.id,
       driver_profile_id: doc.driver_profile_id,
@@ -167,8 +178,8 @@ class DriverDocumentsController < ApplicationController
       status: doc.status,
       notify_before_days: doc.notify_before_days,
       verification_status: doc.verification_status,
-      verified_by: doc.verified_by,
-      verified_at: doc.verified_at,
+      verified_by: verified_by_value,
+      verified_at: verified_at_value,
       cost: doc.cost,
       notes: doc.notes,
       file_url: blob_url_for(doc.file)
