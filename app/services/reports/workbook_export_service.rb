@@ -260,7 +260,7 @@ module Reports
           trip.material_description,
           trip.pickup_location,
           trip.destination.presence || trip.dropoff_location,
-          destination_revenue_rate(trip.destination.presence || trip.dropoff_location),
+          destination_revenue_rate(trip.destination.presence || trip.dropoff_location, fallback: trip.road_expense_disbursed.to_d),
           start_timestamp&.to_date,
           start_timestamp&.strftime("%H:%M"),
           trip.pre_trip_inspection.present? ? "Yes" : "No",
@@ -686,7 +686,9 @@ module Reports
       grouped.each do |destination|
         trips = scoped_trips.where(destination: destination)
         count = trips.count
-        rate = destination_revenue_rate(destination)
+        disbursed = trips.sum(:road_expense_disbursed).to_d
+        fallback_rate = count.positive? ? (disbursed / count).round(2) : 0.to_d
+        rate = destination_revenue_rate(destination, fallback: fallback_rate)
         amount = (rate * count).to_d
         totals[:trips] += count
         totals[:amount] += amount
@@ -696,22 +698,36 @@ module Reports
       rows
     end
 
-    def destination_revenue_rate(destination_name)
+    def destination_revenue_rate(destination_name, fallback: 0.to_d)
       dest_str = destination_name.to_s.strip
-      return 0.to_d if dest_str.blank?
+      return fallback if dest_str.blank?
 
-      @destination_rates_cache ||= Destination.where(active: true).pluck(:name, :base_trip_cost).each_with_object({}) do |(name, cost), h|
-        h[name.to_s.downcase] = cost.to_d
+      destination = find_destination_record(dest_str)
+      return fallback unless destination
+
+      calculate_destination_rate(destination)
+    end
+
+    def find_destination_record(dest_str)
+      @destination_records_cache ||= Destination.where(active: true).index_by { |d| d.name.to_s.downcase }
+
+      record = @destination_records_cache[dest_str.downcase]
+      return record if record
+
+      @destination_records_cache.each do |key, dest|
+        return dest if dest_str.downcase.include?(key) || key.include?(dest_str.downcase)
       end
 
-      rate = @destination_rates_cache[dest_str.downcase]
-      return rate if rate&.positive?
+      nil
+    end
 
-      @destination_rates_cache.each do |key, value|
-        return value if dest_str.downcase.include?(key) || key.include?(dest_str.downcase)
-      end
-
-      0.to_d
+    def calculate_destination_rate(destination)
+      fuel_price  = effective_fuel_price_for(@month)
+      total_kms   = destination.base_km.to_d * (1 + destination.additional_provision_pct.to_d)
+      kms_per_ltr = destination.kms_per_liter.to_d
+      liters      = kms_per_ltr.positive? ? (total_kms / kms_per_ltr) : 0.to_d
+      fuel_cost   = liters * fuel_price
+      (fuel_cost + destination.base_trip_cost.to_d).round(2)
     end
 
     def monthly_budget_rows
