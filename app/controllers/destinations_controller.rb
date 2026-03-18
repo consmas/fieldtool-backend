@@ -36,12 +36,12 @@ class DestinationsController < ApplicationController
     destination = Destination.find(params[:id])
     authorize destination
 
-    fuel_price_current = params.require(:fuel_price_current)
+    fuel_price = resolve_fuel_price(params[:fuel_price_current], params[:period])
     additional_km = params[:additional_km] || 0
 
     result = DestinationRateCalculator.new(
       destination: destination,
-      fuel_price_current: fuel_price_current,
+      fuel_price_current: fuel_price,
       additional_km: additional_km
     ).call
 
@@ -49,6 +49,25 @@ class DestinationsController < ApplicationController
   end
 
   private
+
+  def resolve_fuel_price(explicit_price, period_param)
+    return explicit_price.to_d if explicit_price.present?
+
+    price_date = period_param.present? ? Date.strptime(period_param, "%Y-%m") : Date.current
+    FuelPrice.where("effective_at <= ?", price_date.end_of_month.end_of_day)
+             .order(effective_at: :desc)
+             .limit(1)
+             .pick(:price_per_liter)
+             .to_d
+  end
+
+  def current_fuel_price
+    @current_fuel_price ||= FuelPrice.where("effective_at <= ?", Date.current.end_of_day)
+                                     .order(effective_at: :desc)
+                                     .limit(1)
+                                     .pick(:price_per_liter)
+                                     .to_d
+  end
 
   def destination_params
     params.require(:destination).permit(
@@ -63,6 +82,11 @@ class DestinationsController < ApplicationController
   end
 
   def destination_payload(destination)
+    rate_result = DestinationRateCalculator.new(
+      destination: destination,
+      fuel_price_current: current_fuel_price
+    ).call
+
     {
       id: destination.id,
       name: destination.name,
@@ -71,7 +95,9 @@ class DestinationsController < ApplicationController
       base_trip_cost: destination.base_trip_cost,
       kms_per_liter: destination.kms_per_liter,
       additional_provision_pct: destination.additional_provision_pct,
-      active: destination.active
+      active: destination.active,
+      current_fuel_price: current_fuel_price,
+      expected_rate: rate_result[:expected_rate]
     }
   end
 end
