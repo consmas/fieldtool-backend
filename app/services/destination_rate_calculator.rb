@@ -6,27 +6,39 @@ class DestinationRateCalculator
   end
 
   def call
-    base_km = @destination.base_km.to_d
-    base_trip_cost = @destination.base_trip_cost.to_d
-    liters_per_km = @destination.liters_per_km.to_d
+    base_km         = @destination.base_km.to_d
+    provision_pct   = @destination.additional_provision_pct.to_d
+    kms_per_liter   = @destination.kms_per_liter.to_d
+    other_cost      = @destination.base_trip_cost.to_d
 
-    total_km = @destination.average_distance_km.to_d
-    extra_km = [total_km - base_km, 0].max
-    fuel_cost_per_km = @fuel_price_current * liters_per_km
-    extra_distance_charge = extra_km * fuel_cost_per_km
+    # Step 1: apply provision to base km  (e.g. 100 × 1.25 = 125)
+    total_kms       = base_km * (1 + provision_pct)
 
-    extra_stop_charge = @additional_km * fuel_cost_per_km
-    final_trip_cost = base_trip_cost + extra_distance_charge + extra_stop_charge
+    # Step 2: liters required for the trip  (e.g. 125 ÷ 3 = 41.67)
+    liters_per_trip = kms_per_liter.positive? ? (total_kms / kms_per_liter) : 0.to_d
+
+    # Step 3: fuel cost for the trip  (e.g. 41.67 × 14.38 ≈ 599)
+    fuel_cost       = (liters_per_trip * @fuel_price_current).round(2)
+
+    # Step 4: extra fuel cost for additional km (extra stops)
+    extra_liters    = kms_per_liter.positive? ? (@additional_km / kms_per_liter) : 0.to_d
+    extra_fuel_cost = (extra_liters * @fuel_price_current).round(2)
+
+    # Step 5: expected rate = fuel cost + other costs  (e.g. 599 + 3151 = 3750)
+    expected_rate   = (fuel_cost + other_cost + extra_fuel_cost).round(2)
 
     {
-      base_trip_cost: base_trip_cost,
-      base_km: base_km,
-      total_km: total_km,
-      liters_per_km: liters_per_km,
-      fuel_cost_per_km: fuel_cost_per_km,
-      extra_distance_charge: extra_distance_charge,
-      extra_stop_charge: extra_stop_charge,
-      final_trip_cost: final_trip_cost
+      base_km:                  base_km,
+      additional_provision_pct: provision_pct,
+      total_kms:                total_kms.round(2),
+      kms_per_liter:            kms_per_liter,
+      liters_per_trip:          liters_per_trip.round(2),
+      fuel_price:               @fuel_price_current,
+      fuel_cost:                fuel_cost,
+      other_cost:               other_cost,
+      extra_km:                 @additional_km,
+      extra_fuel_cost:          extra_fuel_cost,
+      expected_rate:            expected_rate
     }
   end
 end

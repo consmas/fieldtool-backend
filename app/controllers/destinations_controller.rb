@@ -56,7 +56,8 @@ class DestinationsController < ApplicationController
       :average_distance_km,
       :base_km,
       :base_trip_cost,
-      :liters_per_km,
+      :kms_per_liter,
+      :additional_provision_pct,
       :active
     )
   end
@@ -68,7 +69,8 @@ class DestinationsController < ApplicationController
       average_distance_km: destination.average_distance_km,
       base_km: destination.base_km,
       base_trip_cost: destination.base_trip_cost,
-      liters_per_km: destination.liters_per_km,
+      kms_per_liter: destination.kms_per_liter,
+      additional_provision_pct: destination.additional_provision_pct,
       active: destination.active
     }
   end
