@@ -17,7 +17,8 @@ class DriverDocumentsController < ApplicationController
     authorize @profile, :update?, policy_class: DriverProfilePolicy
 
     doc = @profile.driver_documents.new(document_params)
-    doc.file.attach(params[:file]) if params[:file].present?
+    file = params[:file].presence || params.dig(:document, :file).presence || params.dig(:driver_document, :file).presence
+    doc.file.attach(file) if file.present?
     doc.save!
 
     render json: payload(doc), status: :created
@@ -28,7 +29,8 @@ class DriverDocumentsController < ApplicationController
     authorize doc, :update?
 
     doc.assign_attributes(document_params)
-    doc.file.attach(params[:file]) if params[:file].present?
+    file = params[:file].presence || params.dig(:document, :file).presence || params.dig(:driver_document, :file).presence
+    doc.file.attach(file) if file.present?
     doc.save!
 
     render json: payload(doc)
@@ -100,12 +102,19 @@ class DriverDocumentsController < ApplicationController
   end
 
   def document_params
-    params.require(:document).permit(
+    source =
+      params[:document].presence ||
+      params[:driver_document].presence ||
+      params
+
+    permitted = ActionController::Parameters.new(source).permit(
       :document_type,
       :document_number,
       :title,
       :issued_at,
+      :issued_date,
       :expires_at,
+      :expiry_date,
       :issuing_authority,
       :status,
       :notify_before_days,
@@ -114,6 +123,27 @@ class DriverDocumentsController < ApplicationController
       :notes,
       metadata: {}
     )
+    permitted[:issued_at] = permitted[:issued_at].presence || permitted.delete(:issued_date)
+    permitted[:expires_at] = permitted[:expires_at].presence || permitted.delete(:expiry_date)
+    permitted[:document_type] = normalize_document_type(permitted[:document_type])
+    permitted[:notify_before_days] = 30 if permitted[:notify_before_days].blank?
+    permitted
+  end
+
+  def normalize_document_type(value)
+    return value if value.blank?
+
+    normalized = value.to_s.downcase.strip
+    case normalized
+    when "license", "driving license", "driving_licence", "driving_licence_card"
+      "driving_license"
+    when "medical", "medical certificate", "medical fitness"
+      "medical_fitness_certificate"
+    when "insurance", "insurance coverage"
+      "insurance_coverage"
+    else
+      normalized.tr(" ", "_")
+    end
   end
 
   def payload(doc)
