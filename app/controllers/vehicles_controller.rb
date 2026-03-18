@@ -17,6 +17,7 @@ class VehiclesController < ApplicationController
     insurance_file = params[:insurance_document].presence || params.dig(:vehicle, :insurance_document).presence
     vehicle.insurance_document.attach(insurance_file) if insurance_file.present?
     vehicle.save!
+    sync_insurance_vehicle_document!(vehicle, insurance_file: insurance_file)
     render json: vehicle_payload(vehicle), status: :created
   end
 
@@ -26,6 +27,7 @@ class VehiclesController < ApplicationController
     vehicle.update!(vehicle_params)
     insurance_file = params[:insurance_document].presence || params.dig(:vehicle, :insurance_document).presence
     vehicle.insurance_document.attach(insurance_file) if insurance_file.present?
+    sync_insurance_vehicle_document!(vehicle, insurance_file: insurance_file)
     render json: vehicle_payload(vehicle)
   end
 
@@ -66,5 +68,25 @@ class VehiclesController < ApplicationController
         document_url: blob_url_for(vehicle.insurance_document)
       }
     }
+  end
+
+  def sync_insurance_vehicle_document!(vehicle, insurance_file:)
+    doc = vehicle.vehicle_documents.where(document_type: "insurance").order(created_at: :desc).first_or_initialize
+    doc.document_type = "insurance"
+    doc.document_number = vehicle.insurance_policy_number
+    doc.issued_at = vehicle.insurance_issued_at
+    doc.expires_at = vehicle.insurance_expires_at
+    doc.issuing_authority = vehicle.insurance_provider
+    doc.status = "active" if doc.status.blank?
+    doc.notify_before_days = 30 if doc.notify_before_days.blank?
+    doc.notes = vehicle.insurance_notes if vehicle.insurance_notes.present?
+
+    if insurance_file.present?
+      doc.file.attach(insurance_file)
+    elsif vehicle.insurance_document.attached? && !doc.file.attached?
+      doc.file.attach(vehicle.insurance_document.blob)
+    end
+
+    doc.save! if doc.new_record? || doc.changed? || doc.file.attachment_changes.present?
   end
 end
