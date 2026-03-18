@@ -15,7 +15,8 @@ class VehicleDocumentsController < ApplicationController
     authorize VehicleDocument, :create?
 
     doc = vehicle.vehicle_documents.new(document_params)
-    doc.file.attach(params[:file]) if params[:file].present?
+    file = params[:file].presence || params.dig(:document, :file).presence || params.dig(:vehicle_document, :file).presence
+    doc.file.attach(file) if file.present?
     doc.save!
 
     render json: document_payload(doc), status: :created
@@ -27,7 +28,8 @@ class VehicleDocumentsController < ApplicationController
     authorize doc, :update?
 
     doc.assign_attributes(document_params)
-    doc.file.attach(params[:file]) if params[:file].present?
+    file = params[:file].presence || params.dig(:document, :file).presence || params.dig(:vehicle_document, :file).presence
+    doc.file.attach(file) if file.present?
     doc.save!
 
     render json: document_payload(doc)
@@ -55,8 +57,35 @@ class VehicleDocumentsController < ApplicationController
   private
 
   def document_params
-      params.require(:document).permit(:document_type, :document_number, :issued_at, :expires_at, :issuing_authority, :cost, :status, :notify_before_days, :notes, metadata: {})
+    source =
+      params[:document].presence ||
+      params[:vehicle_document].presence ||
+      params
+
+    permitted = ActionController::Parameters.new(source).permit(
+      :document_type,
+      :document_number,
+      :issued_at,
+      :expires_at,
+      :issuing_authority,
+      :cost,
+      :status,
+      :notify_before_days,
+      :notes,
+      metadata: {}
+    )
+    permitted[:document_type] = normalize_document_type(permitted[:document_type])
+    permitted
+  end
+
+  def normalize_document_type(value)
+    return value if value.blank?
+
+    case value.to_s
+    when "roadworthiness" then "road_worthiness"
+    else value
     end
+  end
 
   def document_payload(doc)
     {

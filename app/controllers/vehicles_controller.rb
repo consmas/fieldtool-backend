@@ -14,7 +14,8 @@ class VehiclesController < ApplicationController
   def create
     vehicle = Vehicle.new(vehicle_params)
     authorize vehicle
-    vehicle.insurance_document.attach(params[:insurance_document]) if params[:insurance_document].present?
+    insurance_file = params[:insurance_document].presence || params.dig(:vehicle, :insurance_document).presence
+    vehicle.insurance_document.attach(insurance_file) if insurance_file.present?
     vehicle.save!
     render json: vehicle_payload(vehicle), status: :created
   end
@@ -23,7 +24,8 @@ class VehiclesController < ApplicationController
     vehicle = Vehicle.find(params[:id])
     authorize vehicle
     vehicle.update!(vehicle_params)
-    vehicle.insurance_document.attach(params[:insurance_document]) if params[:insurance_document].present?
+    insurance_file = params[:insurance_document].presence || params.dig(:vehicle, :insurance_document).presence
+    vehicle.insurance_document.attach(insurance_file) if insurance_file.present?
     render json: vehicle_payload(vehicle)
   end
 
