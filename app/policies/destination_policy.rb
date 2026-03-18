@@ -23,6 +23,10 @@ class DestinationPolicy < ApplicationPolicy
     user.present?
   end
 
+  def preview_rate?
+    user.present?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

@@ -48,6 +48,19 @@ class DestinationsController < ApplicationController
     render json: result
   end
 
+  def preview_rate
+    authorize Destination, :preview_rate?
+    destination = Destination.new(preview_params)
+
+    fuel_price = resolve_fuel_price(nil, params[:period])
+    result = DestinationRateCalculator.new(
+      destination: destination,
+      fuel_price_current: fuel_price
+    ).call
+
+    render json: result.merge(fuel_price_used: fuel_price)
+  end
+
   private
 
   def resolve_fuel_price(explicit_price, period_param)
@@ -78,6 +91,16 @@ class DestinationsController < ApplicationController
       :kms_per_liter,
       :additional_provision_pct,
       :active
+    )
+  end
+
+  def preview_params
+    params.permit(
+      :average_distance_km,
+      :base_km,
+      :base_trip_cost,
+      :kms_per_liter,
+      :additional_provision_pct
     )
   end
 

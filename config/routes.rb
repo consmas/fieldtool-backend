@@ -29,6 +29,9 @@ Rails.application.routes.draw do
 
   scope defaults: { format: :json } do
     resources :destinations, only: [:index, :show, :create, :update, :destroy] do
+      collection do
+        post "preview_rate"
+      end
       member do
         post "calculate"
       end
