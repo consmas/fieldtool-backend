@@ -73,6 +73,7 @@ class Trips::PreTripsController < ApplicationController
 
       pre_trip.core_checklist = checklist
     end
+    pre_trip.captured_by ||= current_user
     pre_trip.odometer_captured_at ||= Time.current
     apply_lenient_defaults(pre_trip)
     attach_photos(pre_trip)
@@ -81,7 +82,7 @@ class Trips::PreTripsController < ApplicationController
 
     TripEvent.create!(
       trip: trip,
-      event_type: "pre_trip_updated",
+      event_type: was_new ? "pre_trip_completed" : "pre_trip_updated",
       message: "Pre-trip inspection updated",
       created_by: current_user,
       data: {
