@@ -260,7 +260,7 @@ module Reports
           trip.material_description,
           trip.pickup_location,
           trip.destination.presence || trip.dropoff_location,
-          trip.road_expense_disbursed.to_d,
+          destination_revenue_rate(trip.destination.presence || trip.dropoff_location),
           start_timestamp&.to_date,
           start_timestamp&.strftime("%H:%M"),
           trip.pre_trip_inspection.present? ? "Yes" : "No",
@@ -686,14 +686,32 @@ module Reports
       grouped.each do |destination|
         trips = scoped_trips.where(destination: destination)
         count = trips.count
-        amount = trips.sum(:road_expense_disbursed).to_d
-        rate = count.positive? ? (amount / count).round(2) : 0
+        rate = destination_revenue_rate(destination)
+        amount = (rate * count).to_d
         totals[:trips] += count
         totals[:amount] += amount
         rows << [nil, destination.presence || "Unspecified", count, rate, amount]
       end
       rows << [nil, "Total:", totals[:trips], nil, totals[:amount]]
       rows
+    end
+
+    def destination_revenue_rate(destination_name)
+      dest_str = destination_name.to_s.strip
+      return 0.to_d if dest_str.blank?
+
+      @destination_rates_cache ||= Destination.where(active: true).pluck(:name, :base_trip_cost).each_with_object({}) do |(name, cost), h|
+        h[name.to_s.downcase] = cost.to_d
+      end
+
+      rate = @destination_rates_cache[dest_str.downcase]
+      return rate if rate&.positive?
+
+      @destination_rates_cache.each do |key, value|
+        return value if dest_str.downcase.include?(key) || key.include?(dest_str.downcase)
+      end
+
+      0.to_d
     end
 
     def monthly_budget_rows

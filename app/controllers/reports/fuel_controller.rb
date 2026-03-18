@@ -38,6 +38,8 @@ class Reports::FuelController < ApplicationController
     scope = scope.where("fueled_at >= ?", Time.zone.parse(params[:date_from])) if params[:date_from].present?
     scope = scope.where("fueled_at <= ?", Time.zone.parse(params[:date_to]).end_of_day) if params[:date_to].present?
     scope
+  rescue ArgumentError, TypeError
+    scope
   end
 
   def filtered_analyses

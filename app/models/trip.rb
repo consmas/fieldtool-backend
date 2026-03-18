@@ -242,7 +242,7 @@ class Trip < ApplicationRecord
     return if client_id.blank?
 
     Shipments::SyncFromTripService.call(self)
-  rescue StandardError
-    nil
+  rescue StandardError => e
+    Rails.logger.error("[Trip#sync_client_shipment] trip_id=#{id} error=#{e.class}: #{e.message}")
   end
 end
