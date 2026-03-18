@@ -107,8 +107,14 @@ class DriverDocumentsController < ApplicationController
       params[:driver_document].presence ||
       params
 
-    raw_source = source.is_a?(ActionController::Parameters) ? source.to_unsafe_h : source
-    permitted = ActionController::Parameters.new(raw_source).permit(
+    scoped_params =
+      if source.is_a?(ActionController::Parameters)
+        source
+      else
+        ActionController::Parameters.new(source || {})
+      end
+
+    permitted = scoped_params.permit(
       :document_type,
       :document_number,
       :title,
