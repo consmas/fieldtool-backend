@@ -61,10 +61,8 @@ class Trips::PreTripsController < ApplicationController
 
   def update
     trip = Trip.find(params[:trip_id])
-    pre_trip = trip.pre_trip_inspection
-    if pre_trip.nil?
-      return render json: { error: "Pre-trip inspection not found" }, status: :not_found
-    end
+    pre_trip = trip.pre_trip_inspection || trip.build_pre_trip_inspection
+    was_new = pre_trip.new_record?
 
     authorize pre_trip
 
@@ -101,7 +99,7 @@ class Trips::PreTripsController < ApplicationController
     )
     emit_inspection_failed_event_if_needed(pre_trip)
 
-    render json: pre_trip_payload(pre_trip)
+    render json: pre_trip_payload(pre_trip), status: (was_new ? :created : :ok)
   end
 
   private
