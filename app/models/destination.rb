@@ -2,10 +2,11 @@ class Destination < ApplicationRecord
   before_validation :normalize_rate_fields
 
   validates :name, presence: true, uniqueness: true
-  validates :average_distance_km, :base_km, :base_trip_cost, :kms_per_liter, :additional_provision_pct, presence: true
+  validates :average_distance_km, :base_km, :base_trip_cost, presence: true
   validates :average_distance_km, :base_trip_cost, numericality: { greater_than_or_equal_to: 0 }
-  validates :base_km, :kms_per_liter, numericality: { greater_than: 0 }
-  validates :additional_provision_pct, numericality: { greater_than_or_equal_to: 0, less_than: 1 }
+  validates :base_km, numericality: { greater_than: 0 }
+  validates :additional_provision_pct, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }, allow_nil: true
+  validate :fuel_consumption_present_and_positive
 
   private
 
@@ -43,5 +44,20 @@ class Destination < ApplicationRecord
     self.fuel_price_ref = 0 if fuel_price_ref.blank?
     self.base_price_per_ton = 0 if base_price_per_ton.blank?
     self.tons_per_trip = 0 if tons_per_trip.blank?
+  end
+
+  def fuel_consumption_present_and_positive
+    if liters_per_km.to_d <= 0 && kms_per_liter.to_d <= 0
+      errors.add(:base, "Either liters_per_km or kms_per_liter must be greater than 0")
+      return
+    end
+
+    if liters_per_km.to_d < 0
+      errors.add(:liters_per_km, "must be greater than or equal to 0")
+    end
+
+    if kms_per_liter.to_d < 0
+      errors.add(:kms_per_liter, "must be greater than or equal to 0")
+    end
   end
 end

@@ -723,11 +723,19 @@ module Reports
 
     def calculate_destination_rate(destination)
       fuel_price  = effective_fuel_price_for(@month)
-      total_kms   = destination.base_km.to_d * (1 + destination.additional_provision_pct.to_d)
-      kms_per_ltr = destination.kms_per_liter.to_d
-      liters      = kms_per_ltr.positive? ? (total_kms / kms_per_ltr) : 0.to_d
-      fuel_cost   = liters * fuel_price
-      (fuel_cost + destination.base_trip_cost.to_d).round(2)
+      base_km = destination.base_km.to_d
+      total_km = destination.average_distance_km.to_d
+      litres_per_km =
+        if destination.liters_per_km.to_d.positive?
+          destination.liters_per_km.to_d
+        elsif destination.kms_per_liter.to_d.positive?
+          (1 / destination.kms_per_liter.to_d).to_d
+        else
+          0.to_d
+        end
+      additional_km = [total_km - base_km, 0.to_d].max
+      additional_fee = additional_km * fuel_price * litres_per_km
+      (destination.base_trip_cost.to_d + additional_fee).round(2)
     end
 
     def monthly_budget_rows
