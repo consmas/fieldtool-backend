@@ -31,8 +31,16 @@ class Destination < ApplicationRecord
   end
 
   def normalize_kms_per_liter
+    if prioritize_liters_per_km?
+      return unless liters_per_km.to_d.positive?
+
+      self.kms_per_liter = (1 / liters_per_km.to_d).round(4)
+      return
+    end
+
     if kms_per_liter.to_d <= 0 && liters_per_km.to_d.positive?
       self.kms_per_liter = (1 / liters_per_km.to_d).round(4)
+      return
     end
 
     return unless kms_per_liter.to_d.positive?
@@ -59,5 +67,28 @@ class Destination < ApplicationRecord
     if kms_per_liter.to_d < 0
       errors.add(:kms_per_liter, "must be greater than or equal to 0")
     end
+  end
+
+  def prioritize_liters_per_km?
+    return false unless liters_per_km.to_d.positive?
+
+    default_liters = self.class.column_defaults["liters_per_km"].to_d
+    default_kms = self.class.column_defaults["kms_per_liter"].to_d
+
+    if persisted?
+      liters_changed = will_save_change_to_liters_per_km?
+      kms_changed = will_save_change_to_kms_per_liter?
+      return true if liters_changed && !kms_changed
+      return false if kms_changed && !liters_changed
+      return true if liters_changed && kms_changed
+    else
+      liters_differs_from_default = liters_per_km.to_d != default_liters
+      kms_differs_from_default = kms_per_liter.to_d != default_kms
+      return true if liters_differs_from_default && !kms_differs_from_default
+      return false if kms_differs_from_default && !liters_differs_from_default
+      return true if liters_differs_from_default && kms_differs_from_default
+    end
+
+    false
   end
 end
