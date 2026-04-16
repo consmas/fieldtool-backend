@@ -1,5 +1,5 @@
 class MeController < ApplicationController
-  before_action :ensure_driver_profile_schema!, only: [:profile, :documents, :create_document, :scores, :badges, :rank, :improvement_tips]
+  before_action :ensure_driver_profile_schema!, only: [:documents, :create_document, :scores, :badges, :rank, :improvement_tips]
 
   def profile
     render json: current_profile_payload
@@ -126,17 +126,30 @@ class MeController < ApplicationController
   end
 
   def current_profile_payload
-    profile = ensure_driver_profile!
-    {
-      user_id: profile.user_id,
-      name: current_user.name,
-      email: current_user.email,
-      current_score: profile.current_score,
-      score_tier: profile.score_tier,
-      status: profile.status,
-      total_trips: profile.total_trips,
-      total_distance_km: profile.total_distance_km
-    }
+    if current_user.driver?
+      profile = ensure_driver_profile!
+      {
+        user_id: profile.user_id,
+        name: current_user.name,
+        email: current_user.email,
+        role: current_user.role,
+        phone_number: current_user.try(:phone_number) || current_user.try(:phone),
+        current_score: profile.current_score,
+        score_tier: profile.score_tier,
+        status: profile.status,
+        total_trips: profile.total_trips,
+        total_distance_km: profile.total_distance_km
+      }
+    else
+      {
+        user_id: current_user.id,
+        name: current_user.name,
+        email: current_user.email,
+        role: current_user.role,
+        phone_number: current_user.try(:phone_number) || current_user.try(:phone),
+        status: "active"
+      }
+    end
   end
 
   def document_params
