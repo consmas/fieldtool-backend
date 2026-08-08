@@ -49,13 +49,17 @@ class OperationRecordsController < ApplicationController
     FileUtils.mkdir_p(tmp_path.dirname)
     File.binwrite(tmp_path, file.read)
 
-    service = OperationImportService.new(
-      file_path: tmp_path.to_s,
-      file_name: file.original_filename,
-      record_type: params[:record_type] || "trip",
-      reporting_month: params[:reporting_month]
-    )
-    created = service.import!
+    created = if File.extname(file.original_filename).downcase == ".xlsx"
+      import_excel_with_python(tmp_path)
+    else
+      service = OperationImportService.new(
+        file_path: tmp_path.to_s,
+        file_name: file.original_filename,
+        record_type: params[:record_type] || "trip",
+        reporting_month: params[:reporting_month]
+      )
+      service.import!
+    end
 
     render json: { imported: created.count, records: created }, status: :created
   rescue StandardError => e
@@ -63,6 +67,24 @@ class OperationRecordsController < ApplicationController
   end
 
   private
+
+  def import_excel_with_python(tmp_path)
+    python_bin = Rails.application.config_for(:application).dig(:python_bin) || "python3"
+    command = [python_bin, Rails.root.join("lib", "tasks", "import_excel_workbook.py"), tmp_path.to_s]
+    output, status = Open3.capture2e(*command)
+    return [] unless status.success?
+
+    rows = JSON.parse(output)
+    rows.map do |row|
+      OperationRecord.create!(row.merge(
+        "record_type" => params[:record_type] || "trip",
+        "reporting_month" => params[:reporting_month],
+        "source_file_name" => params[:file].original_filename
+      ))
+    end
+  rescue JSON::ParserError, StandardError => e
+    raise StandardError, "Excel import failed: #{e.message}"
+  end
 
   def permitted_params
     params.require(:operation_record).permit(

@@ -1,4 +1,5 @@
 require "test_helper"
+require "caxlsx"
 
 class OperationImportServiceTest < ActiveSupport::TestCase
   test "imports csv rows into operation records" do
@@ -82,6 +83,39 @@ class OperationImportServiceTest < ActiveSupport::TestCase
       assert_equal 4193.2, record.expected_revenue.to_f
       assert_equal "Completed", record.status
       assert_match(/De Simone/, record.notes.to_s)
+    end
+  end
+
+  test "imports xlsx workbook rows when headers appear below metadata rows" do
+    Tempfile.create(["invoice_workbook", ".xlsx"]) do |file|
+      package = Axlsx::Package.new
+      package.workbook.add_worksheet(name: "May_31_2026") do |sheet|
+        sheet.add_row(["CONSMAS SUPPLY CHAIN SOLUTIONS LTD"])
+        sheet.add_row(["LOGISTICS SERVICE SCHEDULE - MAY 1 TO 31, 2026"])
+        sheet.add_row([])
+        sheet.add_row(["TRUCK REGISTRATION NUMBER: GT-1295-26"])
+        sheet.add_row(["Date", "Customer Name", "Waybill No.", "Destination", "No. of Stops", "Additional km Travelled", "Fuel Cost Per Litre*", "Base Fee", "Additional Fee", "Total Fee"])
+        sheet.add_row([Date.new(2026, 5, 4), "De Simone Ltd.", "1176 / 1177", "Accra", 2, 12, 16.1, 4000, 193.2, 4193.2])
+      end
+      package.serialize(file.path)
+      file.rewind
+
+      service = OperationImportService.new(
+        file_path: file.path,
+        file_name: "invoice.xlsx",
+        record_type: "trip",
+        reporting_month: "May 2026"
+      )
+
+      assert_difference("OperationRecord.count", 1) do
+        service.import!
+      end
+
+      record = OperationRecord.order(:created_at).last
+      assert_equal "2026-05-04", record.entry_date.to_s
+      assert_equal "1176 / 1177", record.waybill_no
+      assert_equal "Accra", record.destination
+      assert_equal 4193.2, record.expected_revenue.to_f
     end
   end
 end

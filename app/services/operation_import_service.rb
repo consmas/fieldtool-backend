@@ -1,4 +1,7 @@
 require "csv"
+require "json"
+require "open3"
+require "zip"
 
 class OperationImportService
   def initialize(file_path:, file_name:, record_type:, reporting_month: nil)
@@ -40,22 +43,62 @@ class OperationImportService
   end
 
   def parse_excel
-    raise ArgumentError, "Excel import is not available in this environment" unless defined?(Spreadsheet)
+    return parse_excel_with_python if @file_name.to_s.downcase.end_with?(".xlsx") || @file_name.to_s.downcase.end_with?(".xls")
 
-    workbook = Spreadsheet.open(@file_path)
-    sheet = workbook.worksheet(0)
-    headers = sheet.row(0).map { |cell| cell.to_s.strip }
+    raise ArgumentError, "Excel import is not available in this environment"
+  end
 
-    rows = []
-    sheet.each 1 do |row|
-      next if row.compact.empty?
+  def parse_excel_with_python
+    python_bin = ENV.fetch("PYTHON_BIN", "/Library/Developer/CommandLineTools/usr/bin/python3")
+    script_path = Rails.root.join("lib", "tasks", "import_excel_workbook.py").to_s
+    command = [python_bin, script_path, @file_path.to_s]
+    output, status = Open3.capture2e(*command)
+    raise ArgumentError, "Excel import failed: #{output}" unless status.success?
 
-      payload = headers.zip(row.to_a).to_h
-      rows << build_payload(payload)
+    rows = JSON.parse(output)
+    rows.map do |row|
+      row.merge(
+        "record_type" => @record_type,
+        "reporting_month" => @reporting_month,
+        "source_file_name" => @file_name
+      )
     end
-    rows
-  rescue LoadError
-    raise ArgumentError, "Spreadsheet gem is not available"
+  rescue JSON::ParserError, StandardError => e
+    raise ArgumentError, "Excel import failed: #{e.message}"
+  end
+
+  def normalize_payload(payload)
+    payload.each_with_object({}) do |(key, value), normalized|
+      normalized[key.to_s.strip] = normalize_value(key, value)
+    end
+  end
+
+  def normalize_value(key, value)
+    return nil if value.blank?
+    return excel_serial_to_date(value) if date_key?(key)
+
+    value
+  end
+
+  def date_key?(key)
+    key.to_s.downcase.match?(/date|month|reporting/i)
+  end
+
+  def excel_serial_to_date(value)
+    return value if value.is_a?(Date)
+    return value.to_date if value.is_a?(Time)
+
+    numeric = value.to_s.strip
+    return nil if numeric.blank?
+
+    return Date.parse(numeric) if numeric.match?(/\d{4}-\d{2}-\d{2}/)
+
+    serial = BigDecimal(numeric)
+    Date.new(1899, 12, 30) + serial.to_i
+  rescue StandardError
+    Date.parse(value.to_s)
+  rescue ArgumentError
+    nil
   end
 
   def build_payload(payload)
