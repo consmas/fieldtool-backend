@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_08_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -575,6 +575,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
     t.index ["vehicle_id"], name: "index_fuel_analysis_records_on_vehicle_id"
   end
 
+  create_table "fuel_deposits", force: :cascade do |t|
+    t.string "omc_name", null: false
+    t.decimal "amount", precision: 14, scale: 2, null: false
+    t.string "currency", default: "GHS", null: false
+    t.datetime "deposit_date", null: false
+    t.string "payment_method", default: "bank_transfer", null: false
+    t.string "reference_no"
+    t.string "status", default: "confirmed", null: false
+    t.text "notes"
+    t.bigint "created_by_id", null: false
+    t.bigint "confirmed_by_id"
+    t.datetime "confirmed_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deposit_date"], name: "index_fuel_deposits_on_deposit_date"
+    t.index ["omc_name"], name: "index_fuel_deposits_on_omc_name"
+    t.index ["reference_no"], name: "index_fuel_deposits_on_reference_no"
+    t.index ["status"], name: "index_fuel_deposits_on_status"
+  end
+
   create_table "fuel_logs", force: :cascade do |t|
     t.bigint "vehicle_id", null: false
     t.bigint "trip_id"
@@ -598,12 +619,44 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "omc_name"
+    t.string "funding_source", default: "cash", null: false
+    t.boolean "deducted_from_omc", default: false, null: false
     t.index ["driver_id"], name: "index_fuel_logs_on_driver_id"
     t.index ["fueled_at"], name: "index_fuel_logs_on_fueled_at"
+    t.index ["funding_source"], name: "index_fuel_logs_on_funding_source"
+    t.index ["omc_name"], name: "index_fuel_logs_on_omc_name"
     t.index ["recorded_by_id"], name: "index_fuel_logs_on_recorded_by_id"
     t.index ["transaction_type"], name: "index_fuel_logs_on_transaction_type"
     t.index ["trip_id"], name: "index_fuel_logs_on_trip_id"
     t.index ["vehicle_id"], name: "index_fuel_logs_on_vehicle_id"
+  end
+
+  create_table "fuel_omc_balances", force: :cascade do |t|
+    t.string "omc_name", null: false
+    t.decimal "balance", precision: 14, scale: 2, default: "0.0", null: false
+    t.string "currency", default: "GHS", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["omc_name"], name: "index_fuel_omc_balances_on_omc_name", unique: true
+  end
+
+  create_table "fuel_omc_ledger_entries", force: :cascade do |t|
+    t.bigint "fuel_omc_balance_id", null: false
+    t.string "entry_type", null: false
+    t.decimal "amount", precision: 14, scale: 2, null: false
+    t.decimal "balance_before", precision: 14, scale: 2, null: false
+    t.decimal "balance_after", precision: 14, scale: 2, null: false
+    t.string "reference_type"
+    t.bigint "reference_id"
+    t.bigint "actor_id"
+    t.text "note"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["entry_type"], name: "index_fuel_omc_ledger_entries_on_entry_type"
+    t.index ["fuel_omc_balance_id"], name: "index_fuel_ledger_entries_on_balance_id"
+    t.index ["reference_type", "reference_id"], name: "index_fuel_ledger_entries_on_reference"
   end
 
   create_table "fuel_prices", force: :cascade do |t|
@@ -886,6 +939,31 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
     t.index ["priority"], name: "index_notifications_on_priority"
     t.index ["read_at"], name: "index_notifications_on_read_at"
     t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+  end
+
+  create_table "operation_records", force: :cascade do |t|
+    t.string "record_type", default: "trip", null: false
+    t.date "entry_date"
+    t.string "reporting_month"
+    t.string "trip_id"
+    t.string "waybill_no"
+    t.string "truck_id"
+    t.string "driver_name"
+    t.string "cargo_type"
+    t.string "origin"
+    t.string "destination"
+    t.decimal "expected_revenue", precision: 12, scale: 2, default: "0.0"
+    t.string "status"
+    t.text "notes"
+    t.jsonb "details", default: {}, null: false
+    t.string "source_file_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_operation_records_on_created_at"
+    t.index ["driver_name"], name: "index_operation_records_on_driver_name"
+    t.index ["entry_date"], name: "index_operation_records_on_entry_date"
+    t.index ["record_type"], name: "index_operation_records_on_record_type"
+    t.index ["truck_id"], name: "index_operation_records_on_truck_id"
   end
 
   create_table "pre_trip_inspections", force: :cascade do |t|
@@ -1372,10 +1450,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_19_210000) do
   add_foreign_key "fuel_analysis_records", "users", column: "driver_id"
   add_foreign_key "fuel_analysis_records", "users", column: "investigated_by_id"
   add_foreign_key "fuel_analysis_records", "vehicles"
+  add_foreign_key "fuel_deposits", "users", column: "confirmed_by_id"
+  add_foreign_key "fuel_deposits", "users", column: "created_by_id"
   add_foreign_key "fuel_logs", "trips"
   add_foreign_key "fuel_logs", "users", column: "driver_id"
   add_foreign_key "fuel_logs", "users", column: "recorded_by_id"
   add_foreign_key "fuel_logs", "vehicles"
+  add_foreign_key "fuel_omc_ledger_entries", "fuel_omc_balances"
+  add_foreign_key "fuel_omc_ledger_entries", "users", column: "actor_id"
   add_foreign_key "incident_comments", "incidents"
   add_foreign_key "incident_comments", "users"
   add_foreign_key "incident_evidence", "incidents"

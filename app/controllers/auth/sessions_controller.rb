@@ -7,7 +7,13 @@ class Auth::SessionsController < Devise::SessionsController
   private
 
   def respond_with(resource, _opts = {})
-    render json: { user: user_payload(resource) }, status: :ok
+    token = request.env["warden-jwt_auth.token"] || build_token(resource)
+
+    render json: {
+      user: user_payload(resource),
+      token: token,
+      jwt: token
+    }, status: :ok
   end
 
   def respond_to_on_destroy
@@ -21,5 +27,11 @@ class Auth::SessionsController < Devise::SessionsController
       name: user.name,
       role: user.role
     }
+  end
+
+  def build_token(user)
+    Warden::JWTAuth::TokenEncoder.new.call(sub: user.id, email: user.email, role: user.role)
+  rescue StandardError
+    nil
   end
 end

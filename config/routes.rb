@@ -28,6 +28,14 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope defaults: { format: :json } do
+    resources :operation_records, only: [:index, :create] do
+      collection do
+        get :summary
+        get :template
+        post :import
+      end
+    end
+
     resources :destinations, only: [:index, :show, :create, :update, :destroy] do
       collection do
         post "preview_rate"
